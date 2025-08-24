@@ -13,15 +13,15 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, provider);
       const token = await result.user.getIdToken();
-
+      console.log(token);
       // Send token to backend
-      await fetch("https://baghchal-io-backend.onrender.com/api/auth/google", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      // await fetch("https://baghchal-io-backend.onrender.com/api/auth/google", {
+      //   method: "POST",
+      //   headers: {
+      //     Authorization: `Bearer ${token}`,
+      //     "Content-Type": "application/json",
+      //   },
+      // });
 
       // 🔁 Redirect to dashboard
       navigate("/dashboard");
