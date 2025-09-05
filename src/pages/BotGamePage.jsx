@@ -11,26 +11,12 @@ const INITIAL_BAG = [
 
 const BotGamePage = () => {
   const [bag, setBag] = useState(INITIAL_BAG);
-  const [rack, setRack] = useState(() =>
-    Array(RACK_SIZE)
-      .fill(null)
-      .map(() => drawTile(INITIAL_BAG))
-  );
+  const [rack, setRack] = useState(Array(RACK_SIZE).fill(null));
   const [board, setBoard] = useState(
-    Array(BOARD_SIZE)
-      .fill(null)
-      .map(() => Array(BOARD_SIZE).fill(null))
+    Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
   );
 
   const wsRef = useRef(null);
-
-  function drawTile(bag) {
-    if (bag.length === 0) return null;
-    const index = Math.floor(Math.random() * bag.length);
-    const tile = bag[index];
-    bag.splice(index, 1);
-    return tile;
-  }
 
   const handleDragStart = (e, tile, rackIndex) => {
     e.dataTransfer.setData("tile", tile);
@@ -59,13 +45,27 @@ const BotGamePage = () => {
 
   const allowDrop = (e) => e.preventDefault();
 
-  // WebSocket connection for logging messages
+  // WebSocket connection
   useEffect(() => {
     wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room3");
 
     wsRef.current.onopen = () => console.log("WebSocket connected");
-    wsRef.current.onmessage = (event) =>
-      console.log("Message from server:", event.data);
+
+    wsRef.current.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        console.log("Message from server:", data);
+
+        // If it's an init message, update rack
+        if (data.type === "init" && Array.isArray(data.rack)) {
+          setRack(data.rack);
+        }
+      } catch (err) {
+        console.error("Failed to parse WebSocket message:", err);
+      }
+    };
+
     wsRef.current.onclose = () => console.log("WebSocket disconnected");
     wsRef.current.onerror = (err) => console.error("WebSocket error:", err);
 
