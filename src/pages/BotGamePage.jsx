@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const BOARD_SIZE = 15;
 const RACK_SIZE = 8;
 
-// Example bag (numbers + operators). In future you can expand with counts.
+// Example bag (numbers + operators)
 const INITIAL_BAG = [
   ..."0123456789".split(""),
   ..."+-*/".split(""),
@@ -22,6 +22,8 @@ const BotGamePage = () => {
       .map(() => Array(BOARD_SIZE).fill(null))
   );
 
+  const wsRef = useRef(null);
+
   function drawTile(bag) {
     if (bag.length === 0) return null;
     const index = Math.floor(Math.random() * bag.length);
@@ -39,11 +41,10 @@ const BotGamePage = () => {
     e.preventDefault();
     const tile = e.dataTransfer.getData("tile");
     const rackIndex = e.dataTransfer.getData("rackIndex");
-
     if (!tile) return;
 
     setBoard((prev) => {
-      if (prev[row][col] !== null) return prev; // already filled
+      if (prev[row][col] !== null) return prev;
       const newBoard = prev.map((r) => [...r]);
       newBoard[row][col] = tile;
       return newBoard;
@@ -51,14 +52,27 @@ const BotGamePage = () => {
 
     setRack((prev) => {
       const newRack = [...prev];
-      newRack[rackIndex] = null; // remove tile but keep empty space
+      newRack[rackIndex] = null;
       return newRack;
     });
   };
 
-  const allowDrop = (e) => {
-    e.preventDefault();
-  };
+  const allowDrop = (e) => e.preventDefault();
+
+  // WebSocket connection for logging messages
+  useEffect(() => {
+    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room3");
+
+    wsRef.current.onopen = () => console.log("WebSocket connected");
+    wsRef.current.onmessage = (event) =>
+      console.log("Message from server:", event.data);
+    wsRef.current.onclose = () => console.log("WebSocket disconnected");
+    wsRef.current.onerror = (err) => console.error("WebSocket error:", err);
+
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
