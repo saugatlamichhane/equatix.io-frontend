@@ -29,6 +29,7 @@ const BotGamePage = () => {
     const rackIndex = e.dataTransfer.getData("rackIndex");
     if (!tile) return;
 
+    // Update board
     setBoard((prev) => {
       if (prev[row][col] !== null) return prev;
       const newBoard = prev.map((r) => [...r]);
@@ -36,11 +37,26 @@ const BotGamePage = () => {
       return newBoard;
     });
 
+    // Update rack
     setRack((prev) => {
       const newRack = [...prev];
       newRack[rackIndex] = null;
       return newRack;
     });
+
+    // Send placement message to backend
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const message = {
+        type: "placement",
+        payload: {
+          row: row,
+          col: col,
+          value: tile,
+        },
+      };
+      wsRef.current.send(JSON.stringify(message));
+      console.log("Sent to server:", message);
+    }
   };
 
   const allowDrop = (e) => e.preventDefault();
@@ -54,7 +70,6 @@ const BotGamePage = () => {
     wsRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         console.log("Message from server:", data);
 
         // If it's an init message, update rack
