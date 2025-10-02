@@ -4,15 +4,15 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import Login from "./components/Login.jsx";
-import Dashboard from "./components/Dashboard.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import FriendsPage from "./pages/FriendsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import FindPlayersPage from "./pages/FindPlayersPage.jsx";
 import LeaderboardPage from "./pages/LeaderboardPage.jsx";
 import GameHomePage from "./pages/GameHomePage.jsx";
-import FeedbackForm from "./components/FeedbackForm.jsx";
+import FeedbackPage from "./pages/FeedbackPage.jsx";
 import LearnPage from "./pages/LearnPage.jsx";
 import TournamentsPage from "./pages/TournamentsPage.jsx";
 import ChallengeGamePage from "./pages/ChallengeGamePage.jsx";
@@ -24,7 +24,7 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route
           path="/challenge/:challengeId"
           element={
@@ -61,7 +61,7 @@ const App = () => {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <DashboardPage />
             </ProtectedRoute>
           }
         />
@@ -85,7 +85,7 @@ const App = () => {
           path="/feedback"
           element={
             <ProtectedRoute>
-              <FeedbackForm />
+              <FeedbackPage />
             </ProtectedRoute>
           }
         />

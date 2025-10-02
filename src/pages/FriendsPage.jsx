@@ -38,37 +38,43 @@ const FriendsPage = () => {
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Your Friends</h1>
-      {friends.length === 0 ? (
-        <p>No friends added yet.</p>
-      ) : (
-        <ul className="space-y-3">
-          {friends.map((friend) => (
-            <li
-              key={friend.uid}
-              className="flex items-center justify-between border p-3 rounded"
-            >
+    <div className="min-h-screen p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6 text-white">Your Friends</h1>
+        {friends.length === 0 ? (
+          <div className="bg-slate-800/50 rounded-xl p-8 text-center ring-1 ring-white/10">
+            <p className="text-slate-300">No friends added yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {friends.map((friend) => (
               <div
-                className="flex items-center gap-4 cursor-pointer"
-                onClick={() => goToProfile(friend.uid)}
+                key={friend.uid}
+                className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 hover:bg-slate-800/70 transition-colors"
               >
-                <img src={friend.photo} className="w-10 h-10 rounded-full" />
-                <div>
-                  <p className="font-semibold">{friend.name}</p>
-                  <p className="text-sm text-gray-500">UID: {friend.uid}</p>
+                <div className="flex items-center justify-between">
+                  <div
+                    className="flex items-center gap-4 cursor-pointer"
+                    onClick={() => goToProfile(friend.uid)}
+                  >
+                    <img src={friend.photo} className="w-12 h-12 rounded-full" />
+                    <div>
+                      <p className="font-semibold text-white">{friend.name}</p>
+                      <p className="text-sm text-slate-400">UID: {friend.uid}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleUnfriend(friend.uid)}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    Unfriend
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => handleUnfriend(friend.uid)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-              >
-                Unfriend
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
