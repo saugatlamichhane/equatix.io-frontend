@@ -8,7 +8,7 @@ const BotGamePage = () => {
   const [board, setBoard] = useState(
     Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
   );
-  const [selectedTiles, setSelectedTiles] = useState([]); // for swap
+  const [selectedTiles, setSelectedTiles] = useState([]);
   const [scores, setScores] = useState({ player: 0, bot: 0 });
   const [turn, setTurn] = useState(1);
 
@@ -38,11 +38,11 @@ const BotGamePage = () => {
       return newRack;
     });
 
-    // Send placement to backend
+    // Send placement to backend (convert to 1-based)
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       const message = {
         type: "placement",
-        payload: { row, col, value: tile },
+        payload: { row: row + 1, col: col + 1, value: tile },
       };
       wsRef.current.send(JSON.stringify(message));
     }
@@ -50,7 +50,6 @@ const BotGamePage = () => {
 
   const allowDrop = (e) => e.preventDefault();
 
-  // Actions → backend commands
   const sendCommand = (type, extra = {}) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type, ...extra }));
@@ -60,6 +59,7 @@ const BotGamePage = () => {
   const handleSubmitMove = () => sendCommand("evaluate");
   const handlePass = () => sendCommand("pass");
   const handleReset = () => sendCommand("reset");
+
   const handleSwap = () => {
     if (selectedTiles.length > 0) {
       sendCommand("swap", { tiles: selectedTiles });
@@ -69,7 +69,7 @@ const BotGamePage = () => {
 
   // WebSocket setup
   useEffect(() => {
-    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room32&isBot=0");
+    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room33&isBot=0");
 
     wsRef.current.onopen = () => console.log("WebSocket connected");
 
@@ -82,13 +82,37 @@ const BotGamePage = () => {
           setRack(data.rack);
           setTurn(data.turn);
         }
+
         if (data.type === "rack" && Array.isArray(data.rack)) {
           setRack(data.rack);
         }
+
         if (data.type === "state") {
           setScores({ player: data["Player1 Score"], bot: data["Player2 Score"] });
           setTurn(data.turn);
+
+          // Build new board from backend state (convert to 0-based)
+          const newBoard = Array(BOARD_SIZE)
+            .fill(null)
+            .map(() => Array(BOARD_SIZE).fill(null));
+
+          if (Array.isArray(data.tiles)) {
+            data.tiles.forEach(({ row, col, value }) => {
+              const r = row - 1;
+              const c = col - 1;
+              if (
+                r >= 0 && r < BOARD_SIZE &&
+                c >= 0 && c < BOARD_SIZE &&
+                typeof value === "string"
+              ) {
+                newBoard[r][c] = value;
+              }
+            });
+          }
+
+          setBoard(newBoard);
         }
+
         if (data.type === "game_over") {
           alert(
             data.winner === 0
@@ -96,6 +120,7 @@ const BotGamePage = () => {
               : `Game Over! Winner: Player ${data.winner}`
           );
         }
+
         if (data.type === "error") {
           alert("Error: " + data.message);
         }
@@ -118,7 +143,7 @@ const BotGamePage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Board */}
+          {/* Game Board */}
           <div className="lg:col-span-3">
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
               <h2 className="text-xl font-semibold text-white mb-4">Game Board</h2>
@@ -139,8 +164,9 @@ const BotGamePage = () => {
             </div>
           </div>
 
-          {/* Controls */}
+          {/* Side Panel */}
           <div className="space-y-6">
+            {/* Game Status */}
             <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-3">Game Status</h3>
               <div className="space-y-2">
@@ -202,6 +228,12 @@ const BotGamePage = () => {
                   Submit Move
                 </button>
                 <button
+                  onClick={handleSwap}
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-2 px-4 rounded-lg"
+                >
+                  Swap Tiles
+                </button>
+                <button
                   onClick={handlePass}
                   className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg"
                 >
@@ -209,16 +241,9 @@ const BotGamePage = () => {
                 </button>
                 <button
                   onClick={handleReset}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg"
                 >
-                  Reset Move
-                </button>
-                <button
-                  onClick={handleSwap}
-                  className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg disabled:opacity-50"
-                  disabled={selectedTiles.length === 0}
-                >
-                  Swap Selected
+                  Reset Game
                 </button>
               </div>
             </div>
