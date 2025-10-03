@@ -3,18 +3,14 @@ import React, { useState, useEffect, useRef } from "react";
 const BOARD_SIZE = 15;
 const RACK_SIZE = 8;
 
-// Example bag (numbers + operators)
-const INITIAL_BAG = [
-  ..."0123456789".split(""),
-  ..."+-*/".split(""),
-];
-
 const BotGamePage = () => {
-  const [bag, setBag] = useState(INITIAL_BAG);
   const [rack, setRack] = useState(Array(RACK_SIZE).fill(null));
   const [board, setBoard] = useState(
     Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
   );
+  const [selectedTiles, setSelectedTiles] = useState([]); // for swap
+  const [scores, setScores] = useState({ player: 0, bot: 0 });
+  const [turn, setTurn] = useState(1);
 
   const wsRef = useRef(null);
 
@@ -29,7 +25,6 @@ const BotGamePage = () => {
     const rackIndex = e.dataTransfer.getData("rackIndex");
     if (!tile) return;
 
-    // Update board
     setBoard((prev) => {
       if (prev[row][col] !== null) return prev;
       const newBoard = prev.map((r) => [...r]);
@@ -37,33 +32,44 @@ const BotGamePage = () => {
       return newBoard;
     });
 
-    // Update rack
     setRack((prev) => {
       const newRack = [...prev];
       newRack[rackIndex] = null;
       return newRack;
     });
 
-    // Send placement message to backend
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    // Send placement to backend
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       const message = {
         type: "placement",
-        payload: {
-          row: row,
-          col: col,
-          value: tile,
-        },
+        payload: { row, col, value: tile },
       };
       wsRef.current.send(JSON.stringify(message));
-      console.log("Sent to server:", message);
     }
   };
 
   const allowDrop = (e) => e.preventDefault();
 
-  // WebSocket connection
+  // Actions → backend commands
+  const sendCommand = (type, extra = {}) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type, ...extra }));
+    }
+  };
+
+  const handleSubmitMove = () => sendCommand("evaluate");
+  const handlePass = () => sendCommand("pass");
+  const handleReset = () => sendCommand("reset");
+  const handleSwap = () => {
+    if (selectedTiles.length > 0) {
+      sendCommand("swap", { tiles: selectedTiles });
+      setSelectedTiles([]);
+    }
+  };
+
+  // WebSocket setup
   useEffect(() => {
-    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room3&isBot=0");
+    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room3&isBot=1");
 
     wsRef.current.onopen = () => console.log("WebSocket connected");
 
@@ -72,21 +78,35 @@ const BotGamePage = () => {
         const data = JSON.parse(event.data);
         console.log("Message from server:", data);
 
-        // If it's an init message, update rack
         if (data.type === "init" && Array.isArray(data.rack)) {
           setRack(data.rack);
+          setTurn(data.turn);
+        }
+        if (data.type === "rack" && Array.isArray(data.rack)) {
+          setRack(data.rack);
+        }
+        if (data.type === "state") {
+          setScores({ player: data["Player1 Score"], bot: data["Player2 Score"] });
+          setTurn(data.turn);
+        }
+        if (data.type === "game_over") {
+          alert(
+            data.winner === 0
+              ? "Game Over! It's a tie."
+              : `Game Over! Winner: Player ${data.winner}`
+          );
+        }
+        if (data.type === "error") {
+          alert("Error: " + data.message);
         }
       } catch (err) {
-        console.error("Failed to parse WebSocket message:", err);
+        console.error("Invalid WS message:", err);
       }
     };
 
     wsRef.current.onclose = () => console.log("WebSocket disconnected");
-    wsRef.current.onerror = (err) => console.error("WebSocket error:", err);
 
-    return () => {
-      if (wsRef.current) wsRef.current.close();
-    };
+    return () => wsRef.current?.close();
   }, []);
 
   return (
@@ -94,11 +114,11 @@ const BotGamePage = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Play vs Bot</h1>
-          <p className="text-slate-300">Challenge the AI in a game of Equatix Math Scrabble</p>
+          <p className="text-slate-300">Challenge the AI in Equatix Math Scrabble</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Game Board */}
+          {/* Board */}
           <div className="lg:col-span-3">
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
               <h2 className="text-xl font-semibold text-white mb-4">Game Board</h2>
@@ -109,7 +129,7 @@ const BotGamePage = () => {
                       key={`${rIdx}-${cIdx}`}
                       onDrop={(e) => handleDrop(e, rIdx, cIdx)}
                       onDragOver={allowDrop}
-                      className="w-10 h-10 flex items-center justify-center bg-slate-600 border border-slate-500 text-lg font-bold text-white rounded hover:bg-slate-500 transition-colors"
+                      className="w-10 h-10 flex items-center justify-center bg-slate-600 border border-slate-500 text-lg font-bold text-white rounded hover:bg-slate-500"
                     >
                       {cell}
                     </div>
@@ -119,26 +139,27 @@ const BotGamePage = () => {
             </div>
           </div>
 
-          {/* Game Info & Controls */}
+          {/* Controls */}
           <div className="space-y-6">
             <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-3">Game Status</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-300">Your Turn</span>
-                  <span className="text-green-400">✓</span>
+                  <span className="text-slate-300">Turn</span>
+                  <span className="text-white font-semibold">{turn === 1 ? "You" : "Bot"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-300">Score</span>
-                  <span className="text-white font-semibold">0</span>
+                  <span className="text-slate-300">Your Score</span>
+                  <span className="text-white font-semibold">{scores.player}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-300">Bot Score</span>
-                  <span className="text-white font-semibold">0</span>
+                  <span className="text-white font-semibold">{scores.bot}</span>
                 </div>
               </div>
             </div>
 
+            {/* Rack */}
             <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-3">Your Tiles</h3>
               <div className="flex flex-wrap gap-2">
@@ -147,9 +168,20 @@ const BotGamePage = () => {
                     key={idx}
                     draggable={!!tile}
                     onDragStart={(e) => handleDragStart(e, tile, idx)}
+                    onClick={() => {
+                      if (tile) {
+                        setSelectedTiles((prev) =>
+                          prev.includes(tile)
+                            ? prev.filter((t) => t !== tile)
+                            : [...prev, tile]
+                        );
+                      }
+                    }}
                     className={`w-10 h-10 flex items-center justify-center border rounded text-lg font-bold shadow-md transition-all ${
-                      tile 
-                        ? "cursor-move bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600" 
+                      tile
+                        ? selectedTiles.includes(tile)
+                          ? "bg-yellow-500 text-black border-yellow-400"
+                          : "cursor-move bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
                         : "bg-slate-600 border-slate-500"
                     }`}
                   >
@@ -159,17 +191,34 @@ const BotGamePage = () => {
               </div>
             </div>
 
+            {/* Actions */}
             <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-3">Actions</h3>
               <div className="space-y-2">
-                <button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded-lg transition-colors">
+                <button
+                  onClick={handleSubmitMove}
+                  className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded-lg"
+                >
                   Submit Move
                 </button>
-                <button className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg transition-colors">
+                <button
+                  onClick={handlePass}
+                  className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg"
+                >
                   Pass Turn
                 </button>
-                <button className="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors">
-                  Forfeit
+                <button
+                  onClick={handleReset}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg"
+                >
+                  Reset Move
+                </button>
+                <button
+                  onClick={handleSwap}
+                  className="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg disabled:opacity-50"
+                  disabled={selectedTiles.length === 0}
+                >
+                  Swap Selected
                 </button>
               </div>
             </div>
