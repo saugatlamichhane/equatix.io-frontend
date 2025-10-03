@@ -1,14 +1,51 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+// src/components/LeaderboardPage.jsx
+import React, { useEffect, useState } from 'react';
+import api from '../utils/api'; // Import the Axios instance
+import { useNavigate } from 'react-router-dom';
 
 const LeaderboardPage = () => {
   const [players, setPlayers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    axios
-      .get("https://equatix-io-backend.onrender.com/api/leaderboard")
-      .then((res) => setPlayers(res.data.players));
+    const fetchLeaderboard = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/Leaderboard'); // Uses baseURL from api.js
+        setPlayers(res.data.players || []);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch leaderboard:', err);
+        setError('Failed to load leaderboard. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
   }, []);
+
+  const goToProfile = (uid) => {
+    navigate(`/profile/${uid}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-300">Loading leaderboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-400">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -22,25 +59,23 @@ const LeaderboardPage = () => {
                   <th className="p-4 text-slate-200 font-semibold">Rank</th>
                   <th className="p-4 text-slate-200 font-semibold">Player</th>
                   <th className="p-4 text-slate-200 font-semibold">Elo</th>
-                  <th className="p-4 text-slate-200 font-semibold">Games Played</th>
                 </tr>
               </thead>
               <tbody>
                 {players.map((player, index) => (
-                  <tr key={player.uid} className="border-t border-slate-700/50 hover:bg-slate-800/30 transition-colors">
+                  <tr
+                    key={player.uid}
+                    className="border-t border-slate-700/50 hover:bg-slate-800/30 transition-colors cursor-pointer"
+                    onClick={() => goToProfile(player.uid)}
+                  >
                     <td className="p-4 text-slate-300 font-medium">{index + 1}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={player.photo}
-                          alt="profile"
-                          className="w-10 h-10 rounded-full"
-                        />
+                        {/* If photo is available in backend later, add it here */}
                         <span className="text-white font-medium">{player.name}</span>
                       </div>
                     </td>
                     <td className="p-4 text-slate-300">{player.elo}</td>
-                    <td className="p-4 text-slate-300">{player.gamesPlayed}</td>
                   </tr>
                 ))}
               </tbody>
