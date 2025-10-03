@@ -69,7 +69,7 @@ const BotGamePage = () => {
 
   // WebSocket setup
   useEffect(() => {
-    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room3&isBot=1");
+    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room30&isBot=1");
 
     wsRef.current.onopen = () => console.log("WebSocket connected");
 
