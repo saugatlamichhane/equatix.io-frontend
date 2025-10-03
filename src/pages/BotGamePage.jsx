@@ -25,6 +25,7 @@ const BotGamePage = () => {
     const rackIndex = e.dataTransfer.getData("rackIndex");
     if (!tile) return;
 
+    // Optimistically update board visually
     setBoard((prev) => {
       if (prev[row][col] !== null) return prev;
       const newBoard = prev.map((r) => [...r]);
@@ -59,7 +60,6 @@ const BotGamePage = () => {
   const handleSubmitMove = () => sendCommand("evaluate");
   const handlePass = () => sendCommand("pass");
   const handleReset = () => sendCommand("reset");
-
   const handleSwap = () => {
     if (selectedTiles.length > 0) {
       sendCommand("swap", { tiles: selectedTiles });
@@ -67,9 +67,8 @@ const BotGamePage = () => {
     }
   };
 
-  // WebSocket setup
   useEffect(() => {
-    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room33&isBot=0");
+    wsRef.current = new WebSocket("ws://localhost:5555/echo?room_name=room34&isBot=0");
 
     wsRef.current.onopen = () => console.log("WebSocket connected");
 
@@ -78,33 +77,43 @@ const BotGamePage = () => {
         const data = JSON.parse(event.data);
         console.log("Message from server:", data);
 
+        // Initial rack and turn
         if (data.type === "init" && Array.isArray(data.rack)) {
           setRack(data.rack);
           setTurn(data.turn);
         }
 
+        // Update rack
         if (data.type === "rack" && Array.isArray(data.rack)) {
           setRack(data.rack);
         }
 
+        // Update game state
         if (data.type === "state") {
           setScores({ player: data["Player1 Score"], bot: data["Player2 Score"] });
           setTurn(data.turn);
 
-          // Build new board from backend state (convert to 0-based)
           const newBoard = Array(BOARD_SIZE)
             .fill(null)
             .map(() => Array(BOARD_SIZE).fill(null));
 
+          // Place confirmed tiles
           if (Array.isArray(data.tiles)) {
             data.tiles.forEach(({ row, col, value }) => {
               const r = row - 1;
               const c = col - 1;
-              if (
-                r >= 0 && r < BOARD_SIZE &&
-                c >= 0 && c < BOARD_SIZE &&
-                typeof value === "string"
-              ) {
+              if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && typeof value === "string") {
+                newBoard[r][c] = value;
+              }
+            });
+          }
+
+          // Place current (unconfirmed) tiles
+          if (Array.isArray(data["current tiles"])) {
+            data["current tiles"].forEach(({ row, col, value }) => {
+              const r = row - 1;
+              const c = col - 1;
+              if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && typeof value === "string") {
                 newBoard[r][c] = value;
               }
             });
