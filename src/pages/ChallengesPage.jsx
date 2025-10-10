@@ -1,145 +1,113 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../authContext";
+import { useNavigate } from "react-router-dom";
+import api from "../utils/api"; // <-- Import the Axios instance
 
 const ChallengesPage = () => {
-  const [challenges, setChallenges] = useState([]);
-  const navigate = useNavigate();
   const { user } = useAuth();
+  const [sentChallenges, setSentChallenges] = useState([]);
+  const [receivedChallenges, setReceivedChallenges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) return;
     const fetchChallenges = async () => {
-      const res = await axios.get(
-        `https://equatix-io-backend.onrender.com/api/challenges/${user.uid}`
-      );
-      setChallenges(res.data.challenges);
+      if (!user) return;
+      setLoading(true);
+      try {
+        // Fetch sent challenges
+        const sentRes = await api.get("/challenge/sent");
+        setSentChallenges(sentRes.data.challenges || []);
+
+        // Fetch received challenges
+        const receivedRes = await api.get("/challenge/received");
+        setReceivedChallenges(receivedRes.data.challenges || []);
+      } catch (error) {
+        console.error("Error fetching challenges:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+
     fetchChallenges();
   }, [user]);
 
-  const updateChallengeLocally = (id, newData) => {
-    setChallenges((prev) =>
-      prev.map((ch) => (ch._id === id ? { ...ch, ...newData } : ch))
-    );
-  };
-
-  const handleAccept = async (id) => {
+  const handleAccept = async (challengeId) => {
     try {
-      await axios.post(
-        "https://equatix-io-backend.onrender.com/api/challenges/accept",
-        { challengeId: id }
+      await api.put(`/challenge/accept/${challengeId}`);
+      setReceivedChallenges((prev) =>
+        prev.map((c) =>
+          c.id === challengeId ? { ...c, status: "accepted" } : c
+        )
       );
-      updateChallengeLocally(id, { status: "in_progress" });
-    } catch (err) {
-      console.error("Failed to accept challenge", err);
+    } catch (error) {
+      console.error("Error accepting challenge:", error);
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (challengeId) => {
     try {
-      await axios.post(
-        "https://equatix-io-backend.onrender.com/api/challenges/reject",
-        { challengeId: id }
-      ); // You should implement this on backend
-      setChallenges((prev) => prev.filter((ch) => ch._id !== id));
-    } catch (err) {
-      console.error("Failed to reject challenge", err);
+      await api.put(`/challenge/reject/${challengeId}`);
+      setReceivedChallenges((prev) =>
+        prev.filter((c) => c.id !== challengeId)
+      );
+    } catch (error) {
+      console.error("Error rejecting challenge:", error);
     }
   };
 
-  const handleJoin = (id) => {
-    navigate(`/challenge/${id}`);
-  };
+  if (loading) return <div>Loading challenges...</div>;
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Your Challenges</h1>
-          <p className="text-slate-300">Manage your active challenges and games</p>
-        </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Challenges</h1>
 
-        {challenges.length === 0 ? (
-          <div className="bg-slate-800/50 rounded-xl p-12 text-center ring-1 ring-white/10">
-            <div className="text-6xl mb-4">⚔️</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No Active Challenges</h3>
-            <p className="text-slate-400 mb-6">Challenge friends or wait for someone to challenge you!</p>
-            <button className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg transition-colors">
-              Find Players
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {challenges.map((challenge) => (
-              <div
-                key={challenge._id}
-                className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10 hover:bg-slate-800/70 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={challenge.opponent?.photo}
-                      alt="opponent"
-                      className="w-16 h-16 rounded-full ring-2 ring-slate-600"
-                    />
-                    <div>
-                      <h3 className="text-xl font-semibold text-white">{challenge.opponent?.name}</h3>
-                      <p className="text-slate-400">
-                        {challenge.challengerUid === user.uid
-                          ? "You challenged them"
-                          : "They challenged you"}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-slate-300">Status:</span>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          challenge.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
-                          challenge.status === "accepted" ? "bg-green-500/20 text-green-400" :
-                          challenge.status === "in_progress" ? "bg-blue-500/20 text-blue-400" :
-                          "bg-slate-500/20 text-slate-400"
-                        }`}>
-                          {challenge.status.charAt(0).toUpperCase() + challenge.status.slice(1)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex gap-3">
-                    {challenge.status === "pending" &&
-                      challenge.challengedUid === user.uid && (
-                        <>
-                          <button
-                            onClick={() => handleAccept(challenge._id)}
-                            className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-                          >
-                            Accept
-                          </button>
-                          <button
-                            onClick={() => handleReject(challenge._id)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-
-                    {(challenge.status === "accepted" ||
-                      challenge.status === "in_progress") && (
-                      <button
-                        onClick={() => handleJoin(challenge._id)}
-                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-                      >
-                        {challenge.status === "accepted" ? "Join Game" : "Resume Game"}
-                      </button>
-                    )}
-                  </div>
-                </div>
+      {/* Received Challenges */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-2">Received Challenges</h2>
+        {receivedChallenges.length === 0 && <p>No received challenges.</p>}
+        {receivedChallenges.map((c) => (
+          <div
+            key={c.id}
+            className="p-2 border rounded mb-2 flex justify-between items-center"
+          >
+            <span>
+              From: {c.challenger_id} | Status: {c.status}
+            </span>
+            {c.status === "pending" && (
+              <div className="space-x-2">
+                <button
+                  onClick={() => handleAccept(c.id)}
+                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => handleReject(c.id)}
+                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                  Reject
+                </button>
               </div>
-            ))}
+            )}
           </div>
-        )}
+        ))}
+      </div>
+
+      {/* Sent Challenges */}
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Sent Challenges</h2>
+        {sentChallenges.length === 0 && <p>No sent challenges.</p>}
+        {sentChallenges.map((c) => (
+          <div
+            key={c.id}
+            className="p-2 border rounded mb-2 flex justify-between items-center"
+          >
+            <span>
+              To: {c.opponent_id} | Status: {c.status}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
