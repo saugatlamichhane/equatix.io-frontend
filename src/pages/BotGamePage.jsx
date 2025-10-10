@@ -163,7 +163,8 @@ const BotGamePage = () => {
                       key={`${rIdx}-${cIdx}`}
                       onDrop={(e) => handleDrop(e, rIdx, cIdx)}
                       onDragOver={allowDrop}
-                      className="w-10 h-10 flex items-center justify-center bg-slate-600 border border-slate-500 text-lg font-bold text-white rounded hover:bg-slate-500"
+                      className={`w-10 h-10 flex items-center justify-center bg-slate-600 border border-slate-500 text-lg font-bold text-white rounded 
+                      ${rIdx === Math.floor(BOARD_SIZE/2)&&cIdx === Math.floor(BOARD_SIZE/2)?"bg-gray-700" : "bg-slate-600 hover:bg-slate-500"}`}
                     >
                       {cell}
                     </div>
