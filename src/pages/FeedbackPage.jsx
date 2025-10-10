@@ -1,5 +1,6 @@
-import { useState } from "react";
-import axios from "axios";
+// src/components/FeedbackPage.jsx
+import React, { useState } from "react";
+import api from "../utils/api"; // Axios instance with baseURL
 import { auth } from "../firebase";
 
 const FeedbackPage = () => {
@@ -12,20 +13,22 @@ const FeedbackPage = () => {
     setStatus("Submitting...");
 
     try {
-      const uid = auth.currentUser?.uid;
-      await axios.post(
-        "https://equatix-io-backend.onrender.com/api/feedback",
-        {
-          uid,
-          message,
-          rating,
-        }
+      // Optional: attach Firebase token if backend uses auth
+      const token = await auth.currentUser?.getIdToken();
+
+      await api.post(
+        "/feedback", // relative path, baseURL is in api.js
+        { message, rating }, // send only what backend expects
+        token
+          ? { headers: { Authorization: `Bearer ${token}` } }
+          : undefined
       );
 
       setStatus("✅ Feedback submitted!");
       setMessage("");
       setRating(5);
     } catch (err) {
+      console.error("Failed to submit feedback:", err);
       setStatus("❌ Failed to send feedback.");
     }
   };
@@ -37,7 +40,9 @@ const FeedbackPage = () => {
           onSubmit={submitFeedback}
           className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10"
         >
-          <h2 className="text-2xl font-semibold mb-6 text-white">Send Feedback</h2>
+          <h2 className="text-2xl font-semibold mb-6 text-white">
+            Send Feedback
+          </h2>
 
           <textarea
             className="w-full bg-slate-700 text-slate-100 placeholder:text-slate-400 border border-slate-600 p-3 mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
