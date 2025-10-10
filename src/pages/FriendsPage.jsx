@@ -1,41 +1,66 @@
+// src/pages/FriendsPage.jsx
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useAuth } from "../authContext";
 import { useNavigate } from "react-router-dom";
+import api from "../utils/api"; // Axios instance with auth
 
 const FriendsPage = () => {
   const { user } = useAuth();
   const [friends, setFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) return;
-    axios
-      .get(`https://equatix-io-backend.onrender.com/api/friends/${user.uid}`)
-      .then((res) => setFriends(res.data.friends));
+
+    const fetchFriends = async () => {
+      try {
+        setLoading(true);
+        // Just list all friends
+        const res = await api.get("/Friends");
+        setFriends(res.data.players || []);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch friends:", err);
+        setError("Failed to load friends. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFriends();
   }, [user]);
-
-  const handleUnfriend = async (friendUid) => {
-    try {
-      await axios.delete(
-        "https://equatix-io-backend.onrender.com/api/friends",
-        {
-          data: {
-            myUid: user.uid,
-            friendUid: friendUid,
-          },
-        }
-      );
-
-      setFriends(friends.filter((friend) => friend.uid !== friendUid));
-    } catch (error) {
-      console.error("Unfriend failed:", error);
-    }
-  };
 
   const goToProfile = (uid) => {
     navigate(`/profile/${uid}`);
   };
+
+  const handleUnfriend = async (friendUid) => {
+    try {
+      await api.delete("/Friends", { data: { myUid: user.uid, friendUid } });
+      setFriends(friends.filter((f) => f.uid !== friendUid));
+    } catch (err) {
+      console.error("Unfriend failed:", err);
+      setError("Failed to remove friend.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-300">Loading friends...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-400">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -57,7 +82,10 @@ const FriendsPage = () => {
                     className="flex items-center gap-4 cursor-pointer"
                     onClick={() => goToProfile(friend.uid)}
                   >
-                    <img src={friend.photo} className="w-12 h-12 rounded-full" />
+                    {/* Optionally show profile photo if available */}
+                    <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+                      {friend.name?.charAt(0)}
+                    </div>
                     <div>
                       <p className="font-semibold text-white">{friend.name}</p>
                       <p className="text-sm text-slate-400">UID: {friend.uid}</p>
