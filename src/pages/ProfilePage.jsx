@@ -1,7 +1,7 @@
 // ProfilePage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api"; // CHANGE: Imported the centralized api instance
 import { useAuth } from "../authContext";
 import { 
   Trophy, 
@@ -34,67 +34,37 @@ const ProfilePage = () => {
     longestWinStreak: 0,
     totalPlayTime: 0
   });
-
-  // New state to track if a challenge exists between current user and profile user
   const [hasChallenge, setHasChallenge] = useState(false);
 
   useEffect(() => {
-    console.log("ProfilePage useEffect - uid:", uid, "user:", user?.uid);
-    
+    // CHANGE: Refactored fetchProfile to use the new API structure
     const fetchProfile = async () => {
       try {
-        const res = await axios.get(
-          `https://equatix-io-backend.onrender.com/api/profile/${uid}`
-        );
-        setProfile(res.data.profile);
+        const res = await api.get(`/Profile/${uid}`);
+        setProfile(res.data);
         
-        // Calculate additional stats
-        const totalGames = res.data.profile.wins + res.data.profile.losses + res.data.profile.draws;
-        const winRate = totalGames > 0 ? (res.data.profile.wins / totalGames * 100).toFixed(1) : 0;
+        // Calculate additional stats from live data
+        const totalGames = res.data.wins + res.data.losses + res.data.draws;
+        const winRate = totalGames > 0 ? (res.data.wins / totalGames * 100).toFixed(1) : 0;
         
         setStats({
           winRate: parseFloat(winRate),
-          avgGameTime: 8.5, // Mock data - would come from backend
-          longestWinStreak: 12, // Mock data
-          totalPlayTime: totalGames * 8.5 // Mock calculation
+          avgGameTime: 8.5, // Mock data - as requested
+          longestWinStreak: 12, // Mock data - as requested
+          totalPlayTime: totalGames * 8.5 // Mock calculation based on live data
         });
       } catch (error) {
         console.error("Failed to fetch profile:", error);
-        
-        // If it's the current user's profile and API fails, create a mock profile
-        if (user && user.uid === uid) {
-          console.log("Creating mock profile for current user");
-          const mockProfile = {
-            uid: user.uid,
-            name: user.displayName || "Player",
-            photo: user.photoURL || "https://via.placeholder.com/150",
-            elo: 1250,
-            wins: 15,
-            losses: 8,
-            draws: 3
-          };
-          setProfile(mockProfile);
-          
-          const totalGames = mockProfile.wins + mockProfile.losses + mockProfile.draws;
-          const winRate = totalGames > 0 ? (mockProfile.wins / totalGames * 100).toFixed(1) : 0;
-          
-          setStats({
-            winRate: parseFloat(winRate),
-            avgGameTime: 8.5,
-            longestWinStreak: 12,
-            totalPlayTime: totalGames * 8.5
-          });
-        } else {
-          setProfile(null);
-        }
+        // CHANGE: Removed mock profile creation on API failure
+        setProfile(null);
       } finally {
         setLoading(false);
       }
     };
 
+    // This data remains mocked as requested
     const fetchRecentGames = async () => {
       try {
-        // Mock recent games data - would come from backend
         setRecentGames([
           { id: 1, opponent: "MathMaster123", result: "win", duration: "7:32", date: "2 hours ago" },
           { id: 2, opponent: "NumberNinja", result: "loss", duration: "12:15", date: "1 day ago" },
@@ -106,9 +76,9 @@ const ProfilePage = () => {
       }
     };
 
+    // This data remains mocked as requested
     const fetchAchievements = async () => {
       try {
-        // Mock achievements data - would come from backend
         setAchievements([
           { id: 1, name: "First Win", description: "Win your first game", icon: "🏆", unlocked: true },
           { id: 2, name: "Win Streak", description: "Win 5 games in a row", icon: "🔥", unlocked: true },
@@ -122,11 +92,9 @@ const ProfilePage = () => {
 
     const checkFriend = async () => {
       if (!user || !uid || user.uid === uid) return;
-
       try {
-        const res = await axios.get(
-          `https://equatix-io-backend.onrender.com/api/friends/${user.uid}`
-        );
+        // CHANGE: Uses the api instance now
+        const res = await api.get(`/friends/${user.uid}`);
         const friendUids = res.data.friends.map((f) => f.uid);
         setIsFriend(friendUids.includes(uid));
       } catch (error) {
@@ -140,17 +108,11 @@ const ProfilePage = () => {
         setHasChallenge(false);
         return;
       }
-
       try {
-        const res = await axios.get(
-          `https://equatix-io-backend.onrender.com/api/challenges/${user.uid}`
-        );
-        // Check if a challenge exists with this profile user
+        // CHANGE: Uses the api instance now
+        const res = await api.get(`/challenges/${user.uid}`);
         const exists = res.data.challenges.some((challenge) => {
-          const participants = [
-            challenge.challengerUid,
-            challenge.challengedUid,
-          ];
+          const participants = [challenge.challengerUid, challenge.challengedUid];
           const relevantStatus = ["pending", "accepted", "in_progress"];
           return (
             participants.includes(uid) &&
@@ -174,24 +136,19 @@ const ProfilePage = () => {
 
   const handleFriendToggle = async () => {
     if (!user) return;
-
     try {
       if (isFriend) {
-        await axios.delete(
-          "https://equatix-io-backend.onrender.com/api/friends",
-          {
-            data: { myUid: user.uid, friendUid: uid },
-          }
-        );
+        // CHANGE: Uses the api instance now
+        await api.delete("/friends", {
+          data: { myUid: user.uid, friendUid: uid },
+        });
         setIsFriend(false);
       } else {
-        await axios.post(
-          "https://equatix-io-backend.onrender.com/api/friends",
-          {
-            myUid: user.uid,
-            friendUid: uid,
-          }
-        );
+        // CHANGE: Uses the api instance now
+        await api.post("/friends", {
+          myUid: user.uid,
+          friendUid: uid,
+        });
         setIsFriend(true);
       }
     } catch (error) {
@@ -201,26 +158,20 @@ const ProfilePage = () => {
 
   const handleChallenge = async () => {
     if (!user) return;
-
     if (user.uid === uid) {
       alert("You can't challenge yourself!");
       return;
     }
-
     if (hasChallenge) {
       alert("You already have a pending or ongoing challenge with this user.");
       return;
     }
-
     try {
-      const createRes = await axios.post(
-        "https://equatix-io-backend.onrender.com/api/challenges",
-        {
-          challengerUid: user.uid,
-          challengedUid: uid,
-        }
-      );
-
+      // CHANGE: Uses the api instance now
+      const createRes = await api.post("/challenges", {
+        challengerUid: user.uid,
+        challengedUid: uid,
+      });
       if (createRes.data.success) {
         alert("🎯 Challenge sent!");
         setHasChallenge(true);
@@ -370,7 +321,7 @@ const ProfilePage = () => {
                     <Activity className="w-5 h-5 text-purple-400" />
                     <span className="text-slate-300 font-medium">Total Play Time</span>
                   </div>
-                  <p className="text-xl font-bold text-white">{Math.round(stats.totalPlayTime)}h</p>
+                  <p className="text-xl font-bold text-white">{Math.round(stats.totalPlayTime / 60)}h</p>
                 </div>
               </div>
             </div>
