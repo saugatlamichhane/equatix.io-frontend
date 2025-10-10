@@ -1,48 +1,62 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useAuth } from "../authContext";
 import { useNavigate } from "react-router-dom";
+import api from "../utils/api"; // <-- Use the same Axios instance
 
 const FindPlayersPage = () => {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [myFriends, setMyFriends] = useState([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) return;
     const fetchFriends = async () => {
-      const res = await axios.get(
-        `https://equatix-io-backend.onrender.com/api/friends/${user.uid}`
-      );
-      setMyFriends(res.data.friends.map((f) => f.uid));
+      if (!user) return;
+      try {
+        const res = await api.get(`/friends/${user.uid}`);
+        setMyFriends(res.data.friends.map((f) => f.uid));
+      } catch (err) {
+        console.error("Error fetching friends:", err);
+      }
     };
     fetchFriends();
   }, [user]);
 
   const handleSearch = async () => {
-    const res = await axios.get(
-      `https://equatix-io-backend.onrender.com/api/search?query=${query}`
-    );
-    setResults(res.data.results);
+    if (!query) return;
+    setLoading(true);
+    try {
+      // Search by UID or name
+      const res = await api.get(`/Player/${query}`);
+      setResults(res.data.players || []);
+    } catch (err) {
+      console.error("Error searching players:", err);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isFriend = (uid) => myFriends.includes(uid);
 
   const addFriend = async (friendUid) => {
-    await axios.post(`https://equatix-io-backend.onrender.com/api/friends`, {
-      myUid: user.uid,
-      friendUid,
-    });
-    setMyFriends([...myFriends, friendUid]);
+    try {
+      await api.post("/friends", { myUid: user.uid, friendUid });
+      setMyFriends([...myFriends, friendUid]);
+    } catch (err) {
+      console.error("Error adding friend:", err);
+    }
   };
 
   const removeFriend = async (friendUid) => {
-    await axios.delete(`https://equatix-io-backend.onrender.com/api/friends`, {
-      data: { myUid: user.uid, friendUid },
-    });
-    setMyFriends(myFriends.filter((uid) => uid !== friendUid));
+    try {
+      await api.delete("/friends", { data: { myUid: user.uid, friendUid } });
+      setMyFriends(myFriends.filter((uid) => uid !== friendUid));
+    } catch (err) {
+      console.error("Error removing friend:", err);
+    }
   };
 
   const goToProfile = (uid) => {
@@ -65,7 +79,7 @@ const FindPlayersPage = () => {
             onClick={handleSearch}
             className="bg-indigo-500 text-white px-6 py-3 rounded-lg hover:bg-indigo-600 transition-colors font-medium"
           >
-            Search
+            {loading ? "Searching..." : "Search"}
           </button>
         </div>
 
@@ -81,7 +95,7 @@ const FindPlayersPage = () => {
                     className="flex items-center gap-4 cursor-pointer"
                     onClick={() => goToProfile(r.uid)}
                   >
-                    <img src={r.photo} className="w-12 h-12 rounded-full" />
+                    {r.photo && <img src={r.photo} className="w-12 h-12 rounded-full" />}
                     <div>
                       <p className="font-semibold text-white">{r.name}</p>
                       <p className="text-sm text-slate-400">UID: {r.uid}</p>
@@ -110,7 +124,9 @@ const FindPlayersPage = () => {
           </div>
         ) : (
           <div className="bg-slate-800/50 rounded-xl p-8 text-center ring-1 ring-white/10">
-            <p className="text-slate-400">No players found yet.</p>
+            <p className="text-slate-400">
+              {loading ? "Searching players..." : "No players found yet."}
+            </p>
           </div>
         )}
       </div>
