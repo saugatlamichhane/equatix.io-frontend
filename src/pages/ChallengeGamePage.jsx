@@ -118,6 +118,9 @@ const ChallengeGamePage = () => {
           setRack(data.rack);
           setTurn(data.turn);
           setPlayerNumber(data.sent); // ← player number from backend
+          console.log(rack);
+          console.log(turn);
+          console.log(playerNumber);
         }
 
         if (data.type === "rack" && Array.isArray(data.rack)) {
