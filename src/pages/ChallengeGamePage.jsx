@@ -123,10 +123,6 @@ useEffect(() => {
           setRack(data.rack);
           setTurn(data.turn);
           setPlayerNumber(data.sent); // ← player number from backend
-          console.log(rack);
-          console.log(turn);
-          console.log(playerNumber);
-    playerNumberRef.current = data.sent;
         }
 
         if (data.type === "rack" && Array.isArray(data.rack)) {
