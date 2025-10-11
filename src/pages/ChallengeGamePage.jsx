@@ -12,11 +12,14 @@ const ChallengeGamePage = () => {
   const { user } = useAuth();
 
   const [board, setBoard] = useState(
-    Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
+    Array(BOARD_SIZE)
+      .fill(null)
+      .map(() => Array(BOARD_SIZE).fill(null))
   );
   const [rack, setRack] = useState(Array(RACK_SIZE).fill(null));
   const [scores, setScores] = useState({ player: 0, opponent: 0 });
   const [turn, setTurn] = useState(1);
+  const [playerNumber, setPlayerNumber] = useState(null);
   const [selectedTiles, setSelectedTiles] = useState([]);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [status, setStatus] = useState("in_progress");
@@ -34,11 +37,13 @@ const ChallengeGamePage = () => {
   const allowDrop = (e) => e.preventDefault();
 
   const handleDragStart = (e, tile, rackIndex) => {
+    if (turn !== playerNumber) return; // Not your turn
     e.dataTransfer.setData("tile", tile);
     e.dataTransfer.setData("rackIndex", rackIndex);
   };
 
   const handleDrop = (e, row, col) => {
+    if (turn !== playerNumber) return; // Not your turn
     e.preventDefault();
     const tile = e.dataTransfer.getData("tile");
     const rackIndex = e.dataTransfer.getData("rackIndex");
@@ -74,10 +79,23 @@ const ChallengeGamePage = () => {
     }
   };
 
-  const handleSubmitMove = () => sendCommand("evaluate");
-  const handlePass = () => sendCommand("pass");
-  const handleReset = () => sendCommand("reset");
+  const handleSubmitMove = () => {
+    if (turn !== playerNumber) return;
+    sendCommand("evaluate");
+  };
+
+  const handlePass = () => {
+    if (turn !== playerNumber) return;
+    sendCommand("pass");
+  };
+
+  const handleReset = () => {
+    if (turn !== playerNumber) return;
+    sendCommand("reset");
+  };
+
   const handleSwap = () => {
+    if (turn !== playerNumber) return;
     if (selectedTiles.length > 0) {
       sendCommand("swap", { tiles: selectedTiles });
       setSelectedTiles([]);
@@ -99,6 +117,7 @@ const ChallengeGamePage = () => {
         if (data.type === "init" && Array.isArray(data.rack)) {
           setRack(data.rack);
           setTurn(data.turn);
+          setPlayerNumber(data.sent); // ← player number from backend
         }
 
         if (data.type === "rack" && Array.isArray(data.rack)) {
@@ -166,6 +185,8 @@ const ChallengeGamePage = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const isMyTurn = turn === playerNumber;
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
@@ -198,11 +219,11 @@ const ChallengeGamePage = () => {
                 <h2 className="text-xl font-semibold text-white">Game Board</h2>
                 <div className="flex items-center gap-4">
                   <div className="text-slate-300">
-                    {turn === 1 ? "Your Turn" : "Opponent's Turn"}
+                    {isMyTurn ? "Your Turn" : "Opponent's Turn"}
                   </div>
                   <div
                     className={`w-3 h-3 rounded-full ${
-                      turn === 1 ? "bg-green-400" : "bg-red-400"
+                      isMyTurn ? "bg-green-400 animate-pulse" : "bg-red-400"
                     }`}
                   />
                 </div>
@@ -239,7 +260,7 @@ const ChallengeGamePage = () => {
               {/* You */}
               <div
                 className={`p-3 rounded-lg ${
-                  turn === 1
+                  isMyTurn
                     ? "bg-indigo-500/20 ring-1 ring-indigo-400"
                     : "bg-slate-700/50"
                 }`}
@@ -268,7 +289,7 @@ const ChallengeGamePage = () => {
               {/* Opponent */}
               <div
                 className={`p-3 rounded-lg ${
-                  turn !== 1
+                  !isMyTurn
                     ? "bg-indigo-500/20 ring-1 ring-indigo-400"
                     : "bg-slate-700/50"
                 }`}
@@ -306,22 +327,23 @@ const ChallengeGamePage = () => {
                 {rack.map((tile, idx) => (
                   <div
                     key={idx}
-                    draggable={!!tile}
+                    draggable={isMyTurn && !!tile}
                     onDragStart={(e) => handleDragStart(e, tile, idx)}
                     onClick={() => {
-                      if (tile) {
-                        setSelectedTiles((prev) =>
-                          prev.includes(tile)
-                            ? prev.filter((t) => t !== tile)
-                            : [...prev, tile]
-                        );
-                      }
+                      if (!isMyTurn || !tile) return;
+                      setSelectedTiles((prev) =>
+                        prev.includes(tile)
+                          ? prev.filter((t) => t !== tile)
+                          : [...prev, tile]
+                      );
                     }}
                     className={`w-10 h-10 flex items-center justify-center border rounded text-lg font-bold shadow-md transition-all ${
                       tile
                         ? selectedTiles.includes(tile)
                           ? "bg-yellow-500 text-black border-yellow-400"
-                          : "cursor-move bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
+                          : isMyTurn
+                          ? "cursor-move bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
+                          : "bg-slate-500 text-white border-slate-400 cursor-not-allowed opacity-60"
                         : "bg-slate-600 border-slate-500"
                     }`}
                   >
@@ -337,29 +359,54 @@ const ChallengeGamePage = () => {
               <div className="space-y-3">
                 <button
                   onClick={handleSubmitMove}
-                  className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded-lg"
+                  disabled={!isMyTurn}
+                  className={`w-full py-2 px-4 rounded-lg ${
+                    isMyTurn
+                      ? "bg-indigo-500 hover:bg-indigo-600 text-white"
+                      : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                  }`}
                 >
                   Submit Move
                 </button>
                 <button
                   onClick={handleSwap}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-2 px-4 rounded-lg"
+                  disabled={!isMyTurn}
+                  className={`w-full py-2 px-4 rounded-lg ${
+                    isMyTurn
+                      ? "bg-yellow-500 hover:bg-yellow-600 text-black"
+                      : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                  }`}
                 >
                   Swap Tiles
                 </button>
                 <button
                   onClick={handlePass}
-                  className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg"
+                  disabled={!isMyTurn}
+                  className={`w-full py-2 px-4 rounded-lg ${
+                    isMyTurn
+                      ? "bg-slate-600 hover:bg-slate-700 text-white"
+                      : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                  }`}
                 >
                   Pass Turn
                 </button>
                 <button
                   onClick={handleReset}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg"
+                  disabled={!isMyTurn}
+                  className={`w-full py-2 px-4 rounded-lg ${
+                    isMyTurn
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                  }`}
                 >
                   Reset Game
                 </button>
               </div>
+            </div>
+
+            {/* Debug Info (optional) */}
+            <div className="text-xs text-slate-500 mt-2">
+              You are Player {playerNumber ?? "?"}, Turn: {turn}
             </div>
           </div>
         </div>
