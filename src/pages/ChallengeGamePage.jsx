@@ -26,6 +26,11 @@ const ChallengeGamePage = () => {
 
   const wsRef = useRef(null);
   const timerRef = useRef(null);
+const playerNumberRef = useRef(null); // 👈 add this line here
+useEffect(() => {
+  playerNumberRef.current = playerNumber;
+}, [playerNumber]);
+
 
   const [opponent, setOpponent] = useState({
     name: "Opponent",
@@ -121,6 +126,7 @@ const ChallengeGamePage = () => {
           console.log(rack);
           console.log(turn);
           console.log(playerNumber);
+    playerNumberRef.current = data.sent;
         }
 
         if (data.type === "rack" && Array.isArray(data.rack)) {
@@ -128,17 +134,17 @@ const ChallengeGamePage = () => {
         }
 
         if (data.type === "state") {
-          if(playerNumber === 1) {
-          setScores({
-            player: data["Player1 Score"] || 0,
-            opponent: data["Player2 Score"] || 0,
-          });
-          } else if(playerNumber == 2) {
-                      setScores({
-            player: data["Player2 Score"] || 0,
-            opponent: data["Player1 Score"] || 0,
-          });
-          }
+  if (playerNumber === 1) {
+    setScores({
+      player: data["Player1 Score"] || 0,
+      opponent: data["Player2 Score"] || 0,
+    });
+  } else if (playerNumber == 2) {
+    setScores({
+      player: data["Player2 Score"] || 0,
+      opponent: data["Player1 Score"] || 0,
+    });
+  }
           console.log(playerNumber);
           console.log(turn);
           console.log(data["Player1 Score"]);
