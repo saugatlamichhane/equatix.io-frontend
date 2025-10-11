@@ -141,16 +141,11 @@ const ProfilePage = () => {
     try {
       if (isFriend) {
         // CHANGE: Uses the api instance now
-        await api.delete("/friends", {
-          data: { myUid: user.uid, friendUid: uid },
-        });
+        await api.delete(`/Friends/${uid}`);
         setIsFriend(false);
       } else {
         // CHANGE: Uses the api instance now
-        await api.post("/friends", {
-          myUid: user.uid,
-          friendUid: uid,
-        });
+        await api.post(`/Friends/${uid}`);
         setIsFriend(true);
       }
     } catch (error) {

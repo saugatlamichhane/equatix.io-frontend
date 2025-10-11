@@ -38,7 +38,7 @@ const FriendsPage = () => {
 
   const handleUnfriend = async (friendUid) => {
     try {
-      await api.delete("/Friends", { data: { myUid: user.uid, friendUid } });
+      await api.delete(`/Friends/${friendUid}`);
       setFriends(friends.filter((f) => f.uid !== friendUid));
     } catch (err) {
       console.error("Unfriend failed:", err);

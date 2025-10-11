@@ -15,8 +15,8 @@ const FindPlayersPage = () => {
     const fetchFriends = async () => {
       if (!user) return;
       try {
-        const res = await api.get(`/friends/${user.uid}`);
-        setMyFriends(res.data.friends.map((f) => f.uid));
+        const res = await api.get(`/Friends`);
+        setMyFriends(res.data.players.map((f) => f.uid));
       } catch (err) {
         console.error("Error fetching friends:", err);
       }
@@ -43,7 +43,7 @@ const FindPlayersPage = () => {
 
   const addFriend = async (friendUid) => {
     try {
-      await api.post("/friends", { myUid: user.uid, friendUid });
+      await api.post(`/Friends/${friendUid}`); 
       setMyFriends([...myFriends, friendUid]);
     } catch (err) {
       console.error("Error adding friend:", err);
@@ -52,7 +52,7 @@ const FindPlayersPage = () => {
 
   const removeFriend = async (friendUid) => {
     try {
-      await api.delete("/friends", { data: { myUid: user.uid, friendUid } });
+      await api.delete(`/Friends/${friendUid}`);
       setMyFriends(myFriends.filter((uid) => uid !== friendUid));
     } catch (err) {
       console.error("Error removing friend:", err);
