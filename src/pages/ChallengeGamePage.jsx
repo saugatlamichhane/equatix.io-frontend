@@ -31,7 +31,7 @@ const ChallengeGamePage = () => {
 
   useEffect(() => {
     // Initialize WebSocket connection for real-time gameplay
-    wsRef.current = new WebSocket(`ws://localhost:5555/game/${challengeId}`);
+    wsRef.current = new WebSocket(`ws://localhost:5555/echo?room_name=${challengeId}&isBot=0`);
     
     wsRef.current.onopen = () => {
       console.log("Connected to game room");

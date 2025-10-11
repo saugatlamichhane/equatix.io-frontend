@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../authContext";
 import { useNavigate } from "react-router-dom";
-import api from "../utils/api"; // <-- Import the Axios instance
+import api from "../utils/api";
 
 const ChallengesPage = () => {
   const { user } = useAuth();
@@ -15,12 +15,12 @@ const ChallengesPage = () => {
       if (!user) return;
       setLoading(true);
       try {
-        // Fetch sent challenges
-        const sentRes = await api.get("/challenge/sent");
-        setSentChallenges(sentRes.data.challenges || []);
+        const [sentRes, receivedRes] = await Promise.all([
+          api.get("/challenge/sent"),
+          api.get("/challenge/received"),
+        ]);
 
-        // Fetch received challenges
-        const receivedRes = await api.get("/challenge/received");
+        setSentChallenges(sentRes.data.challenges || []);
         setReceivedChallenges(receivedRes.data.challenges || []);
       } catch (error) {
         console.error("Error fetching challenges:", error);
@@ -48,12 +48,15 @@ const ChallengesPage = () => {
   const handleReject = async (challengeId) => {
     try {
       await api.put(`/challenge/reject/${challengeId}`);
-      setReceivedChallenges((prev) =>
-        prev.filter((c) => c.id !== challengeId)
-      );
+      setReceivedChallenges((prev) => prev.filter((c) => c.id !== challengeId));
     } catch (error) {
       console.error("Error rejecting challenge:", error);
     }
+  };
+
+  const handleJoin = (challengeId) => {
+    // 👇 navigate to the challenge game page
+    navigate(`/challenge/${challengeId}`);
   };
 
   if (loading) return <div>Loading challenges...</div>;
@@ -74,6 +77,7 @@ const ChallengesPage = () => {
             <span>
               From: {c.challenger_id} | Status: {c.status}
             </span>
+
             {c.status === "pending" && (
               <div className="space-x-2">
                 <button
@@ -89,6 +93,15 @@ const ChallengesPage = () => {
                   Reject
                 </button>
               </div>
+            )}
+
+            {c.status === "accepted" && (
+              <button
+                onClick={() => handleJoin(c.id)}
+                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+              >
+                Join
+              </button>
             )}
           </div>
         ))}
@@ -106,6 +119,15 @@ const ChallengesPage = () => {
             <span>
               To: {c.opponent_id} | Status: {c.status}
             </span>
+
+            {c.status === "accepted" && (
+              <button
+                onClick={() => handleJoin(c.id)}
+                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+              >
+                Join
+              </button>
+            )}
           </div>
         ))}
       </div>
