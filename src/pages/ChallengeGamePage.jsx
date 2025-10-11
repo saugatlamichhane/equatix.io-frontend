@@ -136,6 +136,10 @@ const ChallengeGamePage = () => {
             opponent: data["Player1 Score"] || 0,
           });
           }
+          console.log(playerNumber);
+          console.log(turn);
+          console.log(data["Player1 Score"]);
+          console.log(data["Player2 Score"]);
 
           setTurn(data.turn);
 
