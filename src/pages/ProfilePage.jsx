@@ -94,8 +94,8 @@ const ProfilePage = () => {
       if (!user || !uid || user.uid === uid) return;
       try {
         // CHANGE: Uses the api instance now
-        const res = await api.get(`/friends/${user.uid}`);
-        const friendUids = res.data.friends.map((f) => f.uid);
+        const res = await api.get(`/Friends`);
+        const friendUids = res.data.players.map((f) => f.uid);
         setIsFriend(friendUids.includes(uid));
       } catch (error) {
         console.error("Failed to fetch friends:", error);
@@ -110,9 +110,11 @@ const ProfilePage = () => {
       }
       try {
         // CHANGE: Uses the api instance now
-        const res = await api.get(`/challenges/${user.uid}`);
-        const exists = res.data.challenges.some((challenge) => {
-          const participants = [challenge.challengerUid, challenge.challengedUid];
+        const res1 = await api.get(`/challenge/sent`);
+        const res2 = await api.get("/challenge/received");
+        const all = [...res1.data.challenges, ...res2.data.challenges];
+        const exists = all.some((challenge) => {
+          const participants = [challenge.challenger_id, challenge.opponent_id];
           const relevantStatus = ["pending", "accepted", "in_progress"];
           return (
             participants.includes(uid) &&
@@ -168,10 +170,7 @@ const ProfilePage = () => {
     }
     try {
       // CHANGE: Uses the api instance now
-      const createRes = await api.post("/challenges", {
-        challengerUid: user.uid,
-        challengedUid: uid,
-      });
+      const createRes = await api.post(`/challenge/send/${uid}`);
       if (createRes.data.success) {
         alert("🎯 Challenge sent!");
         setHasChallenge(true);
