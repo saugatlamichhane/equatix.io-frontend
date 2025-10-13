@@ -130,12 +130,12 @@ useEffect(() => {
         }
 
         if (data.type === "state") {
-  if (playerNumber === 1) {
+  if (playerNumberRef.current === 1) {
     setScores({
       player: data["Player1 Score"] || 0,
       opponent: data["Player2 Score"] || 0,
     });
-  } else if (playerNumber == 2) {
+  } else if (playerNumberRef.current === 2) {
     setScores({
       player: data["Player2 Score"] || 0,
       opponent: data["Player1 Score"] || 0,
