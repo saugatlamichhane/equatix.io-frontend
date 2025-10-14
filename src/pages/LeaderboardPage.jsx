@@ -71,7 +71,13 @@ const LeaderboardPage = () => {
                     <td className="p-4 text-slate-300 font-medium">{index + 1}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        {/* If photo is available in backend later, add it here */}
+ {player.photo && (
+      <img
+        src={player.photo}
+        alt={player.name}
+        className="w-10 h-10 rounded-full object-cover border border-slate-600"
+      />
+    )}
                         <span className="text-white font-medium">{player.name}</span>
                       </div>
                     </td>
