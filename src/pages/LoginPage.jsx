@@ -1,5 +1,7 @@
 // src/pages/LoginPage.jsx
 import React from "react";
+import api from '../utils/api'; // Import the Axios instance
+
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../firebase";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +27,12 @@ const LoginPage = () => {
       // });
 
       // 🔁 Redirect to dashboard
+      const respdata = await api.get('/login');
+      if(respdata.data.success) {
+        console.log(`Logged in as UID: ${respdata.data.uid}`);
       navigate("/dashboard");
+
+      }
     } catch (err) {
       console.error("❌ Login failed:", err);
     }
