@@ -83,9 +83,17 @@ const FriendsPage = () => {
                     onClick={() => goToProfile(friend.uid)}
                   >
                     {/* Optionally show profile photo if available */}
-                    <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
-                      {friend.name?.charAt(0)}
-                    </div>
+{friend.photo ? (
+  <img
+    src={friend.photo}
+    alt={friend.name}
+    className="w-12 h-12 rounded-full object-cover border border-slate-600"
+  />
+) : (
+  <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+    {friend.name?.charAt(0)}
+  </div>
+)}
                     <div>
                       <p className="font-semibold text-white">{friend.name}</p>
                       <p className="text-sm text-slate-400">UID: {friend.uid}</p>
