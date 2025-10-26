@@ -109,7 +109,7 @@ useEffect(() => {
 
   useEffect(() => {
     wsRef.current = new WebSocket(
-      `ws://localhost:5555/echo?room_name=${challengeId}&isBot=0`
+      `wss://equatix-backend.onrender.com/echo?room_name=challenge${challengeId}`
     );
 
     wsRef.current.onopen = () => console.log("WebSocket connected");
