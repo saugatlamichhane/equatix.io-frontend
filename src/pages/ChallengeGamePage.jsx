@@ -292,12 +292,12 @@ useEffect(() => {
   // if playerNumber is 2, then turn 2 is their turn
   const isMyTurn = turn === playerNumber;
   
-  console.log("Turn state:", { 
-    turn, 
-    playerNumber, 
-    isMyTurn, 
-    condition: `${turn} === ${playerNumber}` 
-  });
+  // console.log("Turn state:", { 
+  //   turn, 
+  //   playerNumber, 
+  //   isMyTurn, 
+  //   condition: `${turn} === ${playerNumber}` 
+  // });
 
   // Show waiting room if status is "waiting" (waiting for opponent to join)
   if (status === "waiting" && playerNumber === null) {
