@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 
 const api = axios.create({
-  baseURL: 'https://equatix-backend.onrender.com', // Local backend URL
+  baseURL: 'http://localhost:5555', // Local backend URL
   timeout: 10000,
 });
 

@@ -15,7 +15,8 @@ import {
   Award,
   Activity,
   BarChart3,
-  MessageCircle
+  MessageCircle,
+  ArrowLeft
 } from "lucide-react";
 
 const ProfilePage = () => {
@@ -195,6 +196,17 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Dashboard
+          </button>
+        </div>
+
         {/* Header Section */}
         <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-2xl p-8 ring-1 ring-white/10 mb-8">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">

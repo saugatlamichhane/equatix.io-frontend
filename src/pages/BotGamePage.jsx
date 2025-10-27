@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 
 const BOARD_SIZE = 15;
-const RACK_SIZE = 8;
+const RACK_SIZE = 10;
 
 const BotGamePage = () => {
   const [rack, setRack] = useState(Array(RACK_SIZE).fill(null));
