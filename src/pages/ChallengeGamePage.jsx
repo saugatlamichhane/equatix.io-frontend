@@ -146,6 +146,11 @@ useEffect(() => {
           });
         }
 
+        if (data.type === "reset" && Array.isArray(data.rack)) {
+        setRack(data.rack); // Update rack with tiles returned from backend
+        // Optionally clear board of current tiles for immediate feedback
+      }
+
         if (data.type === "rack" && Array.isArray(data.rack)) {
           setRack(data.rack);
         }
@@ -557,7 +562,7 @@ useEffect(() => {
                       : "bg-slate-600 text-slate-400 cursor-not-allowed"
                   }`}
                 >
-                  Reset Game
+                  Reset Tiles
                 </button>
               </div>
             </div>
