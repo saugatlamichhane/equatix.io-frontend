@@ -228,7 +228,7 @@ const ProfilePage = () => {
               <div className="flex flex-wrap items-center gap-6 mb-6">
                 <div className="flex items-center gap-2">
                   <Trophy className="w-6 h-6 text-yellow-400" />
-                  <span className="text-2xl font-bold text-indigo-400">{profile.elo}</span>
+                  <span className="text-2xl font-bold text-indigo-400">{Math.round(profile.elo)}</span>
                   <span className="text-slate-300">ELO Rating</span>
                 </div>
                 <div className="flex items-center gap-2">
