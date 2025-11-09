@@ -233,11 +233,11 @@ const ProfilePage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-green-400" />
-                  <span className="text-slate-300">Rank #{Math.floor(Math.random() * 1000) + 1}</span>
+                  <span className="text-slate-300">Rank #{profile.rank}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-blue-400" />
-                  <span className="text-slate-300">Joined 2 months ago</span>
+                  <span className="text-slate-300">Joined {profile.joined_ago}</span>
                 </div>
               </div>
 
