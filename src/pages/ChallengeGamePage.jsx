@@ -47,6 +47,12 @@ useEffect(() => {
     rating: 1250,
   });
 
+  const [playerInfo, setPlayerInfo] = useState({
+    name: user.displayName || "You",
+    photo: user.photoURL || "https://via.placeholder.com/40",
+    rating: 1250,
+  });
+
   // Helper functions
   const allowDrop = (e) => e.preventDefault();
 
@@ -138,11 +144,24 @@ useEffect(() => {
           setPlayerNumber(data.sent); // ← player number from backend
           setStatus("in_progress"); // Start the game
           setOpponentConnected(true);
-          
+          const playerInfo = {
+            name: data.name,
+            photo: data.photo,
+            rating: data.elo,
+          };
+          setPlayerInfo(playerInfo);
           console.log("Initialized:", { 
             playerNumber: data.sent, 
             turn: data.turn, 
             rackLength: data.rack.length 
+          });
+        }
+
+        if(data.type === "opponent_info") {
+          setOpponent({
+            name: data.name,
+            photo: data.photo,
+            rating: data.elo,
           });
         }
 
@@ -419,14 +438,14 @@ useEffect(() => {
               >
                   <div className="flex items-center gap-3">
                     <img
-                      src={user?.photoURL || "https://via.placeholder.com/40"}
+                      src={playerInfo?.photo || "https://via.placeholder.com/40"}
                       alt="You"
                       className="w-10 h-10 rounded-full"
                     />
                     <div>
-                      <div className="text-white font-semibold">You</div>
+                      <div className="text-white font-semibold">{playerInfo?.name || "You"}</div>
                     <div className="text-slate-400 text-sm">
-                      Rating: {user?.rating || 1250}
+                      Rating: {playerInfo?.rating || 1250}
                     </div>
                     </div>
                     <div className="ml-auto text-right">
