@@ -203,7 +203,7 @@ const DashboardPage = () => {
                     </div>
                   </Panel>
 
-                  {/* Tips & Tricks */}
+                  {/* Tips & Tricks
                   <Panel>
                     <h2 className="text-xl font-semibold text-white mb-4">💡 Pro Tip</h2>
                     <p className="text-slate-300 text-sm mb-3">
@@ -215,7 +215,7 @@ const DashboardPage = () => {
                     >
                       Learn more strategies →
                     </button>
-                  </Panel>
+                  </Panel> */}
 
                   {/* Live Stats */}
                   <Panel>

@@ -423,10 +423,10 @@ const ProfilePage = () => {
                   <span className="text-slate-300">Current Streak</span>
                   <span className="text-white font-semibold">3 wins</span>
                 </div>
-                <div className="flex justify-between items-center">
+                {/* <div className="flex justify-between items-center">
                   <span className="text-slate-300">Favorite Mode</span>
                   <span className="text-white font-semibold">Ranked</span>
-                </div>
+                </div> */}
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300">Best ELO</span>
                   <span className="text-white font-semibold">1,450</span>
