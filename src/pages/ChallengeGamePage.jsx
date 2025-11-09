@@ -445,7 +445,7 @@ useEffect(() => {
                     <div>
                       <div className="text-white font-semibold">{playerInfo?.name || "You"}</div>
                     <div className="text-slate-400 text-sm">
-                      Rating: {playerInfo?.rating || 1250}
+                      Rating: {Math.round(playerInfo?.rating || 1250)}
                     </div>
                     </div>
                     <div className="ml-auto text-right">
@@ -476,7 +476,7 @@ useEffect(() => {
                       {opponent.name}
                     </div>
                     <div className="text-slate-400 text-sm">
-                      Rating: {opponent.rating}
+                      Rating: {Math.round(opponent.rating)}
                     </div>
                   </div>
                   <div className="ml-auto text-right">
