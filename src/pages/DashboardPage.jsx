@@ -38,7 +38,7 @@ const DashboardPage = () => {
     const fetchStats = async () => {
       try {
         const response = await api.get("/quickstats");
-        setQuickStats(response.data.stats);
+        setQuickStats(response.data);
       } catch (error) {
         console.error("Error fetching quick stats:", error);
       }
