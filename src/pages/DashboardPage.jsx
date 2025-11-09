@@ -30,7 +30,7 @@ const DashboardPage = () => {
   const [quickStats, setQuickStats] = React.useState({
     elo: 0,
     gamesWon: 0,
-    friendsCount: 0,
+    friends: 0,
     activeChallenges: 0,
   });
 
@@ -147,7 +147,7 @@ const DashboardPage = () => {
                     </div>
                     <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
                       <Swords className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">3</p>
+                      <p className="text-2xl font-bold text-white">{quickStats.activeChallenges}</p>
                       <p className="text-slate-400 text-sm">Active Challenges</p>
                     </div>
                   </div>
