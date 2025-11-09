@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { useAuth } from "../authContext";
 import equatixLogo from "../assets/equatixLogo.png";
+import api from "../utils/api";
 import {
   Users,
   UserPlus,
@@ -25,6 +26,26 @@ import {
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const [quickStats, setQuickStats] = React.useState({
+    elo: 0,
+    gamesWon: 0,
+    friendsCount: 0,
+    activeChallenges: 0,
+  });
+
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get("/quickstats");
+        setQuickStats(response.data.stats);
+      } catch (error) {
+        console.error("Error fetching quick stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleLogout = () => {
     auth.signOut();
@@ -111,17 +132,17 @@ const DashboardPage = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
                       <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">1,250</p>
+                      <p className="text-2xl font-bold text-white">{Math.round(quickStats.elo)}</p>
                       <p className="text-slate-400 text-sm">ELO Rating</p>
                     </div>
                     <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
                       <Sword className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">47</p>
+                      <p className="text-2xl font-bold text-white">{quickStats.gamesWon}</p>
                       <p className="text-slate-400 text-sm">Games Won</p>
                     </div>
                     <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
                       <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">12</p>
+                      <p className="text-2xl font-bold text-white">{quickStats.friends}</p>
                       <p className="text-slate-400 text-sm">Friends</p>
                     </div>
                     <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
