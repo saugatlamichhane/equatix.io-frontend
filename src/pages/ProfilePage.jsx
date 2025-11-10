@@ -25,7 +25,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
-  const [isFriend, setIsFriend] = useState(false);
+  const [friendStatus, setFriendStatus] = useState("none"); // 'none', 'friend', 'request_sent', 'request_received'
   const [loading, setLoading] = useState(true);
   const [recentGames, setRecentGames] = useState([]);
   const [achievements, setAchievements] = useState([]);
@@ -36,6 +36,7 @@ const ProfilePage = () => {
     totalPlayTime: 0
   });
   const [hasChallenge, setHasChallenge] = useState(false);
+  const [friendActionLoading, setFriendActionLoading] = useState(false);
 
   useEffect(() => {
     // CHANGE: Refactored fetchProfile to use the new API structure
@@ -91,16 +92,36 @@ const ProfilePage = () => {
       }
     };
 
-    const checkFriend = async () => {
-      if (!user || !uid || user.uid === uid) return;
+    const checkFriendStatus = async () => {
+      if (!user || !uid || user.uid === uid) {
+        setFriendStatus("none");
+        return;
+      }
       try {
-        // CHANGE: Uses the api instance now
-        const res = await api.get(`/Friends`);
-        const friendUids = res.data.players.map((f) => f.uid);
-        setIsFriend(friendUids.includes(uid));
+        // Check all friend-related data in parallel
+        const [friendsRes, incomingRes, sentRes] = await Promise.all([
+          api.get("/friends").catch(() => ({ data: { friends: [] } })),
+          api.get("/friend-requests").catch(() => ({ data: { requests: [] } })),
+          api.get("/friend-requests/sent").catch(() => ({ data: { sentRequests: [] } }))
+        ]);
+
+        const friends = friendsRes.data.friends || [];
+        const incomingRequests = incomingRes.data.requests || [];
+        const sentRequests = sentRes.data.sentRequests || [];
+
+        // Determine friend status
+        if (friends.some(f => f.uid === uid)) {
+          setFriendStatus("friend");
+        } else if (sentRequests.some(r => r.uid === uid)) {
+          setFriendStatus("request_sent");
+        } else if (incomingRequests.some(r => r.uid === uid)) {
+          setFriendStatus("request_received");
+        } else {
+          setFriendStatus("none");
+        }
       } catch (error) {
-        console.error("Failed to fetch friends:", error);
-        setIsFriend(false);
+        console.error("Failed to check friend status:", error);
+        setFriendStatus("none");
       }
     };
 
@@ -133,24 +154,59 @@ const ProfilePage = () => {
     fetchProfile();
     fetchRecentGames();
     fetchAchievements();
-    checkFriend();
+    checkFriendStatus();
     fetchChallenges();
   }, [uid, user]);
 
-  const handleFriendToggle = async () => {
-    if (!user) return;
+  const handleFriendAction = async () => {
+    if (!user || friendActionLoading) return;
+    
+    setFriendActionLoading(true);
     try {
-      if (isFriend) {
-        // CHANGE: Uses the api instance now
-        await api.delete(`/Friends/${uid}`);
-        setIsFriend(false);
+      if (friendStatus === "friend") {
+        // Unfriend: Delete friend relationship
+        const res = await api.delete(`/friend/${uid}`);
+        if (res.data.success) {
+          setFriendStatus("none");
+          alert("Friend removed");
+        } else {
+          alert(res.data.error || "Failed to remove friend");
+        }
+      } else if (friendStatus === "request_sent") {
+        // Cancel sent request
+        const res = await api.delete(`/friend-request/cancel/${uid}`);
+        if (res.data.success) {
+          setFriendStatus("none");
+          alert("Friend request canceled");
+        } else {
+          alert(res.data.error || "Failed to cancel request");
+        }
+      } else if (friendStatus === "request_received") {
+        // Accept incoming request
+        const res = await api.post(`/friend-request/accept/${uid}`);
+        if (res.data.success) {
+          setFriendStatus("friend");
+          alert("Friend request accepted!");
+        } else {
+          alert(res.data.error || "Failed to accept request");
+        }
       } else {
-        // CHANGE: Uses the api instance now
-        await api.post(`/Friends/${uid}`);
-        setIsFriend(true);
+        // Send friend request
+        const res = await api.post(`/friend-request/${uid}`);
+        if (res.data.success) {
+          setFriendStatus("request_sent");
+          alert("Friend request sent!");
+        } else {
+          alert(res.data.error || "Failed to send friend request");
+        }
       }
+      // Refresh friend status after action
+      await checkFriendStatus();
     } catch (error) {
       console.error("Failed to update friends:", error);
+      alert(error.response?.data?.error || "An error occurred");
+    } finally {
+      setFriendActionLoading(false);
     }
   };
 
@@ -244,13 +300,28 @@ const ProfilePage = () => {
               {user && user.uid !== uid && (
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={handleFriendToggle}
+                    onClick={handleFriendAction}
+                    disabled={friendActionLoading}
                     className={`px-6 py-3 rounded-lg text-white font-medium transition-colors flex items-center gap-2 ${
-                      isFriend ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
-                    }`}
+                      friendStatus === "friend" 
+                        ? "bg-red-500 hover:bg-red-600" 
+                        : friendStatus === "request_sent"
+                        ? "bg-yellow-500 hover:bg-yellow-600"
+                        : friendStatus === "request_received"
+                        ? "bg-green-500 hover:bg-green-600"
+                        : "bg-indigo-500 hover:bg-indigo-600"
+                    } ${friendActionLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <Users className="w-5 h-5" />
-                    {isFriend ? "Unfriend" : "Add Friend"}
+                    {friendActionLoading 
+                      ? "Loading..." 
+                      : friendStatus === "friend" 
+                        ? "Unfriend" 
+                        : friendStatus === "request_sent"
+                        ? "Cancel Request"
+                        : friendStatus === "request_received"
+                        ? "Accept Request"
+                        : "Send Friend Request"}
                   </button>
 
                   <button
