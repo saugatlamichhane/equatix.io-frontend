@@ -52,8 +52,11 @@ const ProfilePage = () => {
         setStats({
           winRate: parseFloat(winRate),
           avgGameTime: 8.5, // Mock data - as requested
-          longestWinStreak: 12, // Mock data - as requested
-          totalPlayTime: totalGames * 8.5 // Mock calculation based on live data
+          longestWinStreak: res.data.bestWinStreak || 0, // Mock data - as requested
+          totalPlayTime: totalGames * 8.5, // Mock calculation based on live data
+          currentStreak: res.data.currentStreak || 0, // Mock data - as requested
+          bestElo: res.data.bestElo || Math.round(res.data.elo) || 0, // Mock data - as requested
+          gamesPlayed: totalGames
         });
       } catch (error) {
         console.error("Failed to fetch profile:", error);
@@ -487,12 +490,12 @@ const ProfilePage = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300">Games Played</span>
                   <span className="text-white font-semibold">
-                    {profile.wins + profile.losses + profile.draws}
+                    {stats.gamesPlayed}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300">Current Streak</span>
-                  <span className="text-white font-semibold">3 wins</span>
+                  <span className="text-white font-semibold">{stats.currentStreak} wins</span>
                 </div>
                 {/* <div className="flex justify-between items-center">
                   <span className="text-slate-300">Favorite Mode</span>
@@ -500,7 +503,7 @@ const ProfilePage = () => {
                 </div> */}
                 <div className="flex justify-between items-center">
                   <span className="text-slate-300">Best ELO</span>
-                  <span className="text-white font-semibold">1,450</span>
+                  <span className="text-white font-semibold">{stats.bestElo}</span>
                 </div>
               </div>
             </div>
