@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Lightbulb, Brain, Play, Video, Trophy, Clock } from "lucide-react";
+import { BookOpen, Lightbulb, Brain, Play, Video, Trophy, Clock, ArrowLeft } from "lucide-react";
 
 const lessons = {
   basics: [
@@ -29,6 +29,17 @@ const LearnPage = () => {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Dashboard
+          </button>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>

@@ -21,6 +21,7 @@ import {
   Gamepad2,
   Search,
   Activity,
+  Sparkles,
 } from "lucide-react"; // ✅ Added icons for Learn & Tournaments
 
 const DashboardPage = () => {
@@ -63,6 +64,7 @@ const DashboardPage = () => {
             <SidebarItem label="Play with Bot" icon={<Bot size={18} />} onClick={() => navigate("/botgame")} />
             <SidebarItem label="Leaderboard" icon={<Trophy size={18} />} onClick={() => navigate("/leaderboard")} />
             <SidebarItem label="Tournaments" icon={<Shield size={18} />} onClick={() => navigate("/tournaments")} />
+            <SidebarItem label="Seasonal Events" icon={<Sparkles size={18} />} onClick={() => navigate("/events/seasonal")} />
             <SidebarItem label="Learn" icon={<GraduationCap size={18} />} onClick={() => navigate("/learn")} />
             <SidebarItem label="Friends" icon={<Users size={18} />} onClick={() => navigate("/friends")} />
             <SidebarItem label="Find Players" icon={<UserPlus size={18} />} onClick={() => navigate("/findPlayers")} />

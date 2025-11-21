@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Calendar, Clock, Users, Trophy, Plus, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Calendar, Clock, Users, Trophy, Plus, ChevronRight, ArrowLeft } from "lucide-react";
 
 const sampleTournaments = [
   {
@@ -36,6 +37,7 @@ const sampleTournaments = [
 
 const TournamentsPage = () => {
   const [tab, setTab] = useState("upcoming");
+  const navigate = useNavigate();
 
   const filtered = useMemo(
     () => sampleTournaments.filter((t) => t.status === tab),
@@ -45,6 +47,17 @@ const TournamentsPage = () => {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Dashboard
+          </button>
+        </div>
+
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-white">Tournaments</h1>

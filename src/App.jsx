@@ -19,6 +19,13 @@ import ChallengeGamePage from "./pages/ChallengeGamePage.jsx";
 import ChallengesPage from "./pages/ChallengesPage.jsx";
 import SocialsPage from "./pages/SocialsPage.jsx";
 import BotGamePage from "./pages/BotGamePage.jsx";
+import PuzzlesPage from "./pages/PuzzlesPage.jsx";
+import PuzzleGamePage from "./pages/PuzzleGamePage.jsx";
+import PuzzleAdminPage from "./pages/PuzzleAdminPage.jsx";
+import SpectatorGamePage from "./pages/SpectatorGamePage.jsx";
+import GameReviewPage from "./pages/GameReviewPage.jsx";
+import DailyPuzzlesPage from "./pages/DailyPuzzlesPage.jsx";
+import SeasonalEventsPage from "./pages/SeasonalEventsPage.jsx";
 const App = () => {
   return (
     <Router>
@@ -126,6 +133,62 @@ const App = () => {
           element={
             <ProtectedRoute>
               <GameHomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/puzzles"
+          element={
+            <ProtectedRoute>
+              <PuzzlesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/puzzle/:puzzleId"
+          element={
+            <ProtectedRoute>
+              <PuzzleGamePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/puzzle/admin"
+          element={
+            <ProtectedRoute>
+              <PuzzleAdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/spectator/:roomId"
+          element={
+            <ProtectedRoute>
+              <SpectatorGamePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/game/review/:gameId"
+          element={
+            <ProtectedRoute>
+              <GameReviewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/puzzles/daily"
+          element={
+            <ProtectedRoute>
+              <DailyPuzzlesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/seasonal"
+          element={
+            <ProtectedRoute>
+              <SeasonalEventsPage />
             </ProtectedRoute>
           }
         />
