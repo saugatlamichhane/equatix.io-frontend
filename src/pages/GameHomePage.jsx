@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../authContext";
 import { Play, Users, Clock, Trophy, Zap } from "lucide-react";
+import api from "../utils/api";
 
 export default function GameHomePage() {
   const [isSearching, setIsSearching] = useState(false);
