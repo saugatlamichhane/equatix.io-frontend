@@ -35,18 +35,36 @@ const DashboardPage = () => {
     activeChallenges: 0,
   });
 
-  React.useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await api.get("/quickstats");
-        setQuickStats(response.data);
-      } catch (error) {
-        console.error("Error fetching quick stats:", error);
-      }
-    };
+  const [liveStats, setLiveStats] = React.useState({
+  players_online: 0,
+  games_today: 0,
+  your_rating: 0,
+  your_rank: 0
+});
 
-    fetchStats();
-  }, []);
+React.useEffect(() => {
+  const fetchStats = async () => {
+    try {
+      const [quickStatsResponse, liveStatsResponse] = await Promise.all([
+        api.get("/quickstats"),
+        api.get("/livestats")
+      ]);
+      setQuickStats(quickStatsResponse.data);
+      setLiveStats(liveStatsResponse.data);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
+  fetchStats();
+  const interval = setInterval(() => {
+    api.get("/livestats")
+      .then(response => setLiveStats(response.data))
+      .catch(error => console.error("Error refreshing live stats:", error));
+  }, 30000);
+
+  return () => clearInterval(interval);
+}, []);
 
   const handleLogout = () => {
     auth.signOut();
@@ -246,15 +264,15 @@ const DashboardPage = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-slate-300 text-sm">Players Online</span>
-                        <span className="text-white font-semibold">1,247</span>
+                        <span className="text-white font-semibold">{liveStats.players_online.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-300 text-sm">Games Today</span>
-                        <span className="text-white font-semibold">2,847</span>
+                        <span className="text-white font-semibold">{liveStats.games_today.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-300 text-sm">Your Rank</span>
-                        <span className="text-white font-semibold">#342</span>
+                        <span className="text-white font-semibold">#{liveStats.your_rank}</span>
                       </div>
                     </div>
                   </Panel>

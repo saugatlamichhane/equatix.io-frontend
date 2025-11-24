@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../authContext";
 import { Play, Users, Clock, Trophy, Zap } from "lucide-react";
@@ -6,41 +6,102 @@ import { Play, Users, Clock, Trophy, Zap } from "lucide-react";
 export default function GameHomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState(0);
-  const [playersOnline, setPlayersOnline] = useState(1247);
-  const [selectedVariant, setSelectedVariant] = useState("normal"); // 'normal', 'blitz', 'marathon'
+  const [selectedVariant, setSelectedVariant] = useState("normal");
+  const [liveStats, setLiveqStats] = useState({
+    players_online: 0,
+    games_today: 0,
+    your_rating: 0,
+    your_rank: 0
+  });
+  const wsRef = useRef(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Search timer
   useEffect(() => {
     let interval;
     if (isSearching) {
       interval = setInterval(() => {
-        setSearchTime(prev => prev + 1);
+        setSearchTime((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
   }, [isSearching]);
 
+  useEffect(() => {
+  const fetchLiveStats = async () => {
+    try {
+      const response = await api.get("/livestats");
+      setLiveStats(response.data);
+    } catch (error) {
+      console.error("Error fetching live stats:", error);
+    }
+  };
+
+  fetchLiveStats();
+  const interval = setInterval(fetchLiveStats, 30000);
+  return () => clearInterval(interval);
+}, []);
+
+
+  // ---------- START REAL MATCHMAKING ----------
   const startMatchmaking = () => {
     setIsSearching(true);
     setSearchTime(0);
-    // Simulate finding a match after 3-10 seconds
-    // In production, this would pass the variant to the backend
-    setTimeout(() => {
+
+    const ws = new WebSocket("wss://equatix-backend.onrender.com/ws/elo_matchmaking");
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          userId: user.uid,
+          elo: user.elo ?? 1000,
+          variant: selectedVariant
+        })
+      );
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        // Example expected data:
+        // { challengeId: 48, message: "found", opponentId: "...", status: "accepted" }
+        if (data.message === "found" && data.challengeId) {
+          ws.close();
+          navigate(`/challenge/${data.challengeId}`);
+        }
+      } catch (err) {
+        console.error("Invalid WS message", err);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
       setIsSearching(false);
-      navigate(`/game/random-match?variant=${selectedVariant}`);
-    }, Math.random() * 7000 + 3000);
+    };
+
+    ws.onclose = () => {
+      console.log("Matchmaking WS closed");
+    };
   };
 
+  // ---------- CANCEL MATCHMAKING ----------
   const cancelMatchmaking = () => {
     setIsSearching(false);
     setSearchTime(0);
+
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
   };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -52,9 +113,10 @@ export default function GameHomePage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Matchmaking Area */}
+          {/* MAIN MATCHMAKING PANEL */}
           <div className="lg:col-span-2">
             <div className="bg-slate-800/50 rounded-xl p-8 ring-1 ring-white/10 text-center">
+              {/* NOT SEARCHING */}
               {!isSearching ? (
                 <>
                   <div className="text-6xl mb-6">🎯</div>
@@ -63,11 +125,13 @@ export default function GameHomePage() {
                     We'll find you an opponent with similar skill level. 
                     Average wait time is 30 seconds.
                   </p>
-                  
-                  {/* Game Variant Selection */}
+
+                  {/* VARIANT SELECTION */}
                   <div className="mb-8">
                     <h3 className="text-lg font-semibold text-white mb-4">Select Game Variant</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                      {/* NORMAL */}
                       <button
                         onClick={() => setSelectedVariant("normal")}
                         className={`p-4 rounded-lg border-2 transition-all ${
@@ -81,6 +145,8 @@ export default function GameHomePage() {
                         <p className="text-slate-400 text-sm">Standard gameplay</p>
                         <p className="text-slate-500 text-xs mt-1">~15 min</p>
                       </button>
+
+                      {/* BLITZ */}
                       <button
                         onClick={() => setSelectedVariant("blitz")}
                         className={`p-4 rounded-lg border-2 transition-all ${
@@ -94,6 +160,8 @@ export default function GameHomePage() {
                         <p className="text-slate-400 text-sm">Fast-paced action</p>
                         <p className="text-slate-500 text-xs mt-1">~5 min</p>
                       </button>
+
+                      {/* MARATHON */}
                       <button
                         onClick={() => setSelectedVariant("marathon")}
                         className={`p-4 rounded-lg border-2 transition-all ${
@@ -110,6 +178,7 @@ export default function GameHomePage() {
                     </div>
                   </div>
 
+                  {/* FIND MATCH BUTTON */}
                   <button
                     onClick={startMatchmaking}
                     className="bg-indigo-500 hover:bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors flex items-center gap-3 mx-auto"
@@ -119,34 +188,29 @@ export default function GameHomePage() {
                   </button>
                 </>
               ) : (
+                /* SEARCHING UI */
                 <>
                   <div className="text-6xl mb-6 animate-pulse">🔍</div>
                   <h2 className="text-2xl font-bold text-white mb-4">Searching for Opponent...</h2>
-                  <p className="text-slate-300 mb-6">
-                    Looking for players with similar skill level
-                  </p>
-                  
+                  <p className="text-slate-300 mb-6">Looking for players with similar skill level</p>
+
                   <div className="bg-slate-700/50 rounded-lg p-6 mb-6">
-                    <div className="text-3xl font-mono text-indigo-400 mb-2">
-                      {formatTime(searchTime)}
-                    </div>
+                    <div className="text-3xl font-mono text-indigo-400 mb-2">{formatTime(searchTime)}</div>
                     <div className="text-slate-400">Search time</div>
                   </div>
 
-                  <div className="flex justify-center gap-4">
-                    <button
-                      onClick={cancelMatchmaking}
-                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      Cancel Search
-                    </button>
-                  </div>
+                  <button
+                    onClick={cancelMatchmaking}
+                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-colors"
+                  >
+                    Cancel Search
+                  </button>
                 </>
               )}
             </div>
           </div>
 
-          {/* Sidebar Info */}
+          {/* RIGHT SIDEBAR */}
           <div className="space-y-6">
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-4">Live Stats</h3>
@@ -156,21 +220,21 @@ export default function GameHomePage() {
                     <Users className="w-5 h-5 text-green-400" />
                     <span className="text-slate-300">Players Online</span>
                   </div>
-                  <span className="text-white font-semibold">{playersOnline.toLocaleString()}</span>
+                  <span className="text-white font-semibold">{liveStats.players_online.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Play className="w-5 h-5 text-blue-400" />
                     <span className="text-slate-300">Games Today</span>
                   </div>
-                  <span className="text-white font-semibold">2,847</span>
+                  <span className="text-white font-semibold">{liveStats.games_today.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Trophy className="w-5 h-5 text-yellow-400" />
                     <span className="text-slate-300">Your Rating</span>
                   </div>
-                  <span className="text-white font-semibold">1,250</span>
+                  <span className="text-white font-semibold">{Math.round(liveStats.your_rating)}</span>
                 </div>
               </div>
             </div>
@@ -204,4 +268,3 @@ export default function GameHomePage() {
     </div>
   );
 }
-
