@@ -8,7 +8,7 @@ export default function GameHomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState("normal");
-  const [liveStats, setLiveqStats] = useState({
+  const [liveStats, setLiveStats] = useState({
     players_online: 0,
     games_today: 0,
     your_rating: 0,
