@@ -22,6 +22,7 @@ import {
   Search,
   Activity,
   Sparkles,
+  Puzzle,
 } from "lucide-react"; // ✅ Added icons for Learn & Tournaments
 
 const DashboardPage = () => {
@@ -80,6 +81,7 @@ React.useEffect(() => {
             <SidebarItem label="Play Now" icon={<Gamepad2 size={18} />} onClick={() => navigate("/match")} />
             <SidebarItem label="Challenges" icon={<Swords size={18} />} onClick={() => navigate("/challenges")} />
             <SidebarItem label="Play with Bot" icon={<Bot size={18} />} onClick={() => navigate("/botgame")} />
+            <SidebarItem label="Puzzles" icon={<Puzzle size={18} />} onClick={() => navigate("/puzzles")} />
             <SidebarItem label="Leaderboard" icon={<Trophy size={18} />} onClick={() => navigate("/leaderboard")} />
             <SidebarItem label="Tournaments" icon={<Shield size={18} />} onClick={() => navigate("/tournaments")} />
             <SidebarItem label="Seasonal Events" icon={<Sparkles size={18} />} onClick={() => navigate("/events/seasonal")} />
@@ -219,6 +221,13 @@ React.useEffect(() => {
                       >
                         <Swords className="w-5 h-5" />
                         View Challenges
+                      </button>
+                      <button 
+                        onClick={() => navigate("/puzzles")}
+                        className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
+                      >
+                        <Puzzle className="w-5 h-5" />
+                        Puzzles
                       </button>
                       <button 
                         onClick={() => navigate("/leaderboard")}
