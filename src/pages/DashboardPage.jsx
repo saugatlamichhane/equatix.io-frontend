@@ -175,7 +175,7 @@ React.useEffect(() => {
                   </div>
 
                   {/* Recent Activity */}
-                  <Panel>
+                  {/* <Panel>
                     <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                       <Activity className="w-5 h-5" />
                       Recent Activity
@@ -206,13 +206,13 @@ React.useEffect(() => {
                         <button className="text-yellow-400 text-sm font-medium hover:text-yellow-300">View</button>
                       </div>
                     </div>
-                  </Panel>
+                  </Panel> */}
                 </div>
 
                 {/* Right Column - Quick Actions & Info */}
                 <div className="space-y-6">
                   {/* Quick Actions */}
-                  <Panel>
+                  {/* <Panel>
                     <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
                     <div className="space-y-3">
                       <button 
@@ -243,15 +243,15 @@ React.useEffect(() => {
                         <GraduationCap className="w-5 h-5" />
                         Learn & Practice
                       </button>
-                      {/* <button 
+                      <button 
                         onClick={() => navigate("/tournaments")}
                         className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
                       >
                         <Shield className="w-5 h-5" />
                         Tournaments
-                      </button> */}
+                      </button> 
                     </div>
-                  </Panel>
+                  </Panel> */}
 
                   {/* Tips & Tricks
                   <Panel>
