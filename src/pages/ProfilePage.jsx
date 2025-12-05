@@ -606,8 +606,7 @@ const ProfilePage = () => {
           </div>
 
           {/* Right Column - Achievements & Info */}
-          <div className="space-y-8">
-            {/* Achievements */}
+          {/* <div className="space-y-8">
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                 <Award className="w-6 h-6" />
@@ -643,8 +642,6 @@ const ProfilePage = () => {
                 ))}
               </div>
             </div>
-
-            {/* Daily Missions */}
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                 <Target className="w-6 h-6" />
@@ -722,7 +719,7 @@ const ProfilePage = () => {
                   );
                 })}
               </div>
-            </div>
+            </div> */}
 
             {/* Quick Stats */}
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
