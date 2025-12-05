@@ -56,9 +56,10 @@ const ProfilePage = () => {
         
         setStats({
           winRate: parseFloat(winRate),
-          avgGameTime: 8.5, // Mock data - as requested
+          avgGameTime: res.data.avgGameTimeMinutes || 0, // Mock data - as requested
+          
           longestWinStreak: res.data.bestWinStreak || 0, // Mock data - as requested
-          totalPlayTime: totalGames * 8.5, // Mock calculation based on live data
+          totalPlayTime: res.data.totalPlayTimeHours || 0, // Mock calculation based on live data
           currentStreak: res.data.currentStreak || 0, // Mock data - as requested
           bestElo: res.data.bestElo || Math.round(res.data.elo) || 0, // Mock data - as requested
           gamesPlayed: totalGames
@@ -548,7 +549,7 @@ const ProfilePage = () => {
                     <Activity className="w-5 h-5 text-purple-400" />
                     <span className="text-slate-300 font-medium">Total Play Time</span>
                   </div>
-                  <p className="text-xl font-bold text-white">{Math.round(stats.totalPlayTime / 60)}h</p>
+                  <p className="text-xl font-bold text-white">{stats.totalPlayTime}h</p>
                 </div>
               </div>
             </div>
