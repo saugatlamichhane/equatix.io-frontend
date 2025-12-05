@@ -554,7 +554,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Recent Games */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+            {/* <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                 <Clock className="w-6 h-6" />
                 Recent Games
@@ -602,7 +602,7 @@ const ProfilePage = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Column - Achievements & Info */}
