@@ -83,8 +83,8 @@ React.useEffect(() => {
             <SidebarItem label="Play with Bot" icon={<Bot size={18} />} onClick={() => navigate("/botgame")} />
             <SidebarItem label="Puzzles" icon={<Puzzle size={18} />} onClick={() => navigate("/puzzles")} />
             <SidebarItem label="Leaderboard" icon={<Trophy size={18} />} onClick={() => navigate("/leaderboard")} />
-            <SidebarItem label="Tournaments" icon={<Shield size={18} />} onClick={() => navigate("/tournaments")} />
-            <SidebarItem label="Seasonal Events" icon={<Sparkles size={18} />} onClick={() => navigate("/events/seasonal")} />
+            {/* <SidebarItem label="Tournaments" icon={<Shield size={18} />} onClick={() => navigate("/tournaments")} />
+            <SidebarItem label="Seasonal Events" icon={<Sparkles size={18} />} onClick={() => navigate("/events/seasonal")} /> */}
             <SidebarItem label="Learn" icon={<GraduationCap size={18} />} onClick={() => navigate("/learn")} />
             <SidebarItem label="Friends" icon={<Users size={18} />} onClick={() => navigate("/friends")} />
             <SidebarItem label="Find Players" icon={<UserPlus size={18} />} onClick={() => navigate("/findPlayers")} />
@@ -243,13 +243,13 @@ React.useEffect(() => {
                         <GraduationCap className="w-5 h-5" />
                         Learn & Practice
                       </button>
-                      <button 
+                      {/* <button 
                         onClick={() => navigate("/tournaments")}
                         className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
                       >
                         <Shield className="w-5 h-5" />
                         Tournaments
-                      </button>
+                      </button> */}
                     </div>
                   </Panel>
 
