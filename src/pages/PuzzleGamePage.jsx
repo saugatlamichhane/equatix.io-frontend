@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../authContext";
-import { ArrowLeft, Trophy, Clock, Target, RotateCcw, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  Trophy,
+  Clock,
+  Target,
+  RotateCcw,
+  Info,
+} from "lucide-react";
 import { getCellMultiplier } from "../utils/multiplierCells";
 import api from "../utils/api";
 
@@ -15,7 +22,9 @@ const PuzzleGamePage = () => {
 
   const [puzzle, setPuzzle] = useState(null);
   const [board, setBoard] = useState(
-    Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
+    Array(BOARD_SIZE)
+      .fill(null)
+      .map(() => Array(BOARD_SIZE).fill(null)),
   );
   const [rack, setRack] = useState(Array(RACK_SIZE).fill(null));
   const [initialBoard, setInitialBoard] = useState(null);
@@ -41,36 +50,51 @@ const PuzzleGamePage = () => {
   const loadPuzzle = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch puzzle from backend using the new endpoint
       try {
         const res = await api.get(`/puzzle/${puzzleId}`);
         const puzzleData = res.data;
-        
+
         // Backend returns: {puzzle_id, difficulty, objective, board: [{row, col, value}], rack: ["1","2","+"]}
         setPuzzle({
           id: puzzleData.puzzle_id,
           puzzle_id: puzzleData.puzzle_id,
           difficulty: puzzleData.difficulty,
           objective: puzzleData.objective,
-          name: `Puzzle ${puzzleData.puzzle_id}`
+          name: `Puzzle ${puzzleData.puzzle_id}`,
         });
-        
+
         // Initialize board with pre-placed tiles from backend
         const newBoard = Array(BOARD_SIZE)
           .fill(null)
           .map(() => Array(BOARD_SIZE).fill(null));
-        
+
+        // Corrected Frontend Code for Incoming Data
         if (puzzleData.board && Array.isArray(puzzleData.board)) {
           puzzleData.board.forEach(({ row, col, value }) => {
-            if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
-              newBoard[row][col] = value;
+            // 1-based to 0-based conversion:
+            const zeroBasedRow = row - 1;
+            const zeroBasedCol = col - 1;
+
+            // Safety check for 0-based range (0 to 14)
+            if (
+              zeroBasedRow >= 0 &&
+              zeroBasedRow < BOARD_SIZE &&
+              zeroBasedCol >= 0 &&
+              zeroBasedCol < BOARD_SIZE
+            ) {
+              newBoard[zeroBasedRow][zeroBasedCol] = value;
+            } else {
+              console.warn(
+                `Received out-of-bounds coordinate: (${row}, ${col})`,
+              );
             }
           });
         }
-        
+
         setBoard(newBoard);
-        setInitialBoard(newBoard.map(row => [...row]));
+        setInitialBoard(newBoard.map((row) => [...row]));
 
         // Initialize rack from backend
         const newRack = Array(RACK_SIZE).fill(null);
@@ -84,28 +108,29 @@ const PuzzleGamePage = () => {
         setRack(newRack);
         setInitialRack([...newRack]);
         setPlacedTiles([]); // Reset placed tiles
-        
       } catch (err) {
         console.error("Failed to load puzzle from backend:", err);
         // Fallback to localStorage
-        const savedPuzzles = JSON.parse(localStorage.getItem("puzzles") || "[]");
+        const savedPuzzles = JSON.parse(
+          localStorage.getItem("puzzles") || "[]",
+        );
         const foundPuzzle = savedPuzzles.find((p) => p.id === puzzleId);
 
         if (foundPuzzle) {
           setPuzzle(foundPuzzle);
-          
+
           const newBoard = Array(BOARD_SIZE)
             .fill(null)
             .map(() => Array(BOARD_SIZE).fill(null));
-          
+
           if (foundPuzzle.initialBoard) {
             foundPuzzle.initialBoard.forEach(({ row, col, value }) => {
               newBoard[row][col] = value;
             });
           }
-          
+
           setBoard(newBoard);
-          setInitialBoard(newBoard.map(row => [...row]));
+          setInitialBoard(newBoard.map((row) => [...row]));
 
           const newRack = Array(RACK_SIZE).fill(null);
           if (foundPuzzle.initialRack) {
@@ -140,7 +165,7 @@ const PuzzleGamePage = () => {
     e.preventDefault();
     const tile = e.dataTransfer.getData("tile");
     const rackIndex = parseInt(e.dataTransfer.getData("rackIndex"));
-    
+
     if (!tile || rackIndex === null) return;
 
     // Check if cell is already occupied (including initial board tiles)
@@ -168,35 +193,35 @@ const PuzzleGamePage = () => {
 
   const handleUndo = () => {
     if (placedTiles.length === 0) return;
-    
+
     // Get the last placed tile
     const lastTile = placedTiles[placedTiles.length - 1];
-    
+
     // Remove it from board
     setBoard((prev) => {
       const newBoard = prev.map((r) => [...r]);
       newBoard[lastTile.row][lastTile.col] = null;
       return newBoard;
     });
-    
+
     // Find the tile in rack and restore it
     // Find first empty slot in rack
     setRack((prev) => {
       const newRack = [...prev];
-      const emptyIndex = newRack.findIndex(tile => tile === null);
+      const emptyIndex = newRack.findIndex((tile) => tile === null);
       if (emptyIndex !== -1) {
         newRack[emptyIndex] = lastTile.value;
       }
       return newRack;
     });
-    
+
     // Remove from placed tiles
     setPlacedTiles((prev) => prev.slice(0, -1));
   };
 
   const handleReset = () => {
     if (!initialBoard || !initialRack) return;
-    setBoard(initialBoard.map(row => [...row]));
+    setBoard(initialBoard.map((row) => [...row]));
     setRack([...initialRack]);
     setPlacedTiles([]);
     setScore(0);
@@ -207,7 +232,7 @@ const PuzzleGamePage = () => {
 
   const handleSubmit = async () => {
     if (isCompleted || validating || !puzzle) return;
-    
+
     // Check if there are any placed tiles to validate
     if (placedTiles.length === 0) {
       alert("Please place at least one tile before submitting!");
@@ -215,16 +240,16 @@ const PuzzleGamePage = () => {
     }
 
     setValidating(true);
-    
+
     try {
       // Call the validateMove endpoint
       const response = await api.post("/puzzle/validateMove", {
         puzzle_id: parseInt(puzzle.puzzle_id || puzzle.id),
-        placed_tiles: placedTiles.map(tile => ({
-          row: tile.row+1,
-          col: tile.col+1,
-          value: tile.value
-        }))
+        placed_tiles: placedTiles.map((tile) => ({
+          row: tile.row + 1,
+          col: tile.col + 1,
+          value: tile.value,
+        })),
       });
 
       // If validation succeeds (200 OK), the move is valid
@@ -232,17 +257,20 @@ const PuzzleGamePage = () => {
         // Move is valid - puzzle is solved!
         setIsCompleted(true);
         setMoves((prev) => prev + 1);
-        
+
         // Clear placed tiles for next move (if needed)
         setPlacedTiles([]);
-        
+
         alert("🎉 Puzzle solved! Great job!");
       }
     } catch (error) {
       // Validation failed - show error message
-      const errorMessage = error.response?.data || error.message || "Invalid move. Please try again.";
+      const errorMessage =
+        error.response?.data ||
+        error.message ||
+        "Invalid move. Please try again.";
       alert(`❌ ${errorMessage}`);
-      
+
       // Optionally, you could reset the invalid tiles here
       // For now, we'll let the user fix it manually
     } finally {
@@ -287,7 +315,9 @@ const PuzzleGamePage = () => {
             <ArrowLeft className="w-5 h-5" />
             Back to Puzzles
           </button>
-          <h1 className="text-2xl font-bold text-white">{puzzle.name || "Puzzle"}</h1>
+          <h1 className="text-2xl font-bold text-white">
+            {puzzle.name || "Puzzle"}
+          </h1>
           <div className="flex items-center gap-4 text-slate-300">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
@@ -302,18 +332,27 @@ const PuzzleGamePage = () => {
 
         {/* Puzzle Info */}
         <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 mb-6">
-          <p className="text-slate-300 mb-2">{puzzle.objective || "Solve the puzzle!"}</p>
+          <p className="text-slate-300 mb-2">
+            {puzzle.objective || "Solve the puzzle!"}
+          </p>
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-yellow-400" />
-              <span className="text-slate-300">Objective: {puzzle.objective || "Complete the puzzle"}</span>
+              <span className="text-slate-300">
+                Objective: {puzzle.objective || "Complete the puzzle"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-slate-300">Difficulty: </span>
-              <span className={`font-semibold ${
-                puzzle.difficulty === "easy" ? "text-green-400" :
-                puzzle.difficulty === "hard" ? "text-red-400" : "text-yellow-400"
-              }`}>
+              <span
+                className={`font-semibold ${
+                  puzzle.difficulty === "easy"
+                    ? "text-green-400"
+                    : puzzle.difficulty === "hard"
+                      ? "text-red-400"
+                      : "text-yellow-400"
+                }`}
+              >
                 {puzzle.difficulty || "medium"}
               </span>
             </div>
@@ -326,7 +365,9 @@ const PuzzleGamePage = () => {
 
         {isCompleted && (
           <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-4 mb-6 text-center">
-            <p className="text-green-400 font-bold text-lg">🎉 Puzzle Completed!</p>
+            <p className="text-green-400 font-bold text-lg">
+              🎉 Puzzle Completed!
+            </p>
             <p className="text-slate-300 text-sm mt-1">
               Score: {score} | Moves: {moves} | Time: {formatTime(timeTaken)}
             </p>
@@ -356,9 +397,10 @@ const PuzzleGamePage = () => {
                     const multiplier = getCellMultiplier(rowIdx, colIdx);
                     const hasTile = cell !== null;
                     const isInitial = initialBoard?.[rowIdx]?.[colIdx] !== null;
-                    const isCenter = rowIdx === Math.floor(BOARD_SIZE / 2) &&
+                    const isCenter =
+                      rowIdx === Math.floor(BOARD_SIZE / 2) &&
                       colIdx === Math.floor(BOARD_SIZE / 2);
-                    
+
                     return (
                       <div
                         key={`${rowIdx}-${colIdx}`}
@@ -370,18 +412,20 @@ const PuzzleGamePage = () => {
                               ? "bg-purple-600 text-white border-purple-400"
                               : "bg-slate-600 text-white border-slate-400"
                             : isCenter
-                            ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
-                            : multiplier.type !== 'none'
-                            ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
-                            : "bg-slate-600 hover:bg-slate-500 border-slate-500"
+                              ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
+                              : multiplier.type !== "none"
+                                ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
+                                : "bg-slate-600 hover:bg-slate-500 border-slate-500"
                         }`}
                       >
                         {cell || (multiplier.label && !hasTile) ? (
-                          <span className="text-xs text-white font-bold">{cell || multiplier.label}</span>
+                          <span className="text-xs text-white font-bold">
+                            {cell || multiplier.label}
+                          </span>
                         ) : null}
                       </div>
                     );
-                  })
+                  }),
                 )}
               </div>
             </div>
@@ -400,7 +444,9 @@ const PuzzleGamePage = () => {
                     className="w-10 h-10 rounded-full"
                   />
                   <div className="flex-1">
-                    <div className="text-white font-semibold">{user?.displayName || "You"}</div>
+                    <div className="text-white font-semibold">
+                      {user?.displayName || "You"}
+                    </div>
                     <div className="text-slate-400 text-sm">Puzzle Mode</div>
                   </div>
                   <div className="text-right">
@@ -447,7 +493,9 @@ const PuzzleGamePage = () => {
               <div className="space-y-3">
                 <button
                   onClick={handleSubmit}
-                  disabled={isCompleted || validating || placedTiles.length === 0}
+                  disabled={
+                    isCompleted || validating || placedTiles.length === 0
+                  }
                   className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
                     isCompleted || validating || placedTiles.length === 0
                       ? "bg-slate-600 text-slate-400 cursor-not-allowed"
@@ -456,7 +504,7 @@ const PuzzleGamePage = () => {
                 >
                   {validating ? "Validating..." : "Validate Move"}
                 </button>
-                
+
                 {placedTiles.length > 0 && (
                   <button
                     onClick={handleUndo}
@@ -467,13 +515,14 @@ const PuzzleGamePage = () => {
                     Undo Last Tile
                   </button>
                 )}
-                
+
                 {placedTiles.length > 0 && (
                   <p className="text-xs text-slate-400 text-center">
-                    {placedTiles.length} tile{placedTiles.length !== 1 ? 's' : ''} placed
+                    {placedTiles.length} tile
+                    {placedTiles.length !== 1 ? "s" : ""} placed
                   </p>
                 )}
-                
+
                 <button
                   onClick={handleReset}
                   disabled={isCompleted}
@@ -494,7 +543,7 @@ const PuzzleGamePage = () => {
                 <Info className="w-5 h-5" />
                 Board Multipliers
               </h3>
-              
+
               <div className="space-y-3">
                 {/* Triple Equation */}
                 <div className="flex items-center gap-3">
@@ -502,8 +551,12 @@ const PuzzleGamePage = () => {
                     <span className="text-xs font-bold text-white">3x</span>
                   </div>
                   <div>
-                    <div className="text-white text-sm font-semibold">Triple Equation (3x)</div>
-                    <div className="text-slate-400 text-xs">Entire equation ×3</div>
+                    <div className="text-white text-sm font-semibold">
+                      Triple Equation (3x)
+                    </div>
+                    <div className="text-slate-400 text-xs">
+                      Entire equation ×3
+                    </div>
                   </div>
                 </div>
 
@@ -513,8 +566,12 @@ const PuzzleGamePage = () => {
                     <span className="text-xs font-bold text-white">2x</span>
                   </div>
                   <div>
-                    <div className="text-white text-sm font-semibold">Double Equation (2x)</div>
-                    <div className="text-slate-400 text-xs">Entire equation ×2</div>
+                    <div className="text-white text-sm font-semibold">
+                      Double Equation (2x)
+                    </div>
+                    <div className="text-slate-400 text-xs">
+                      Entire equation ×2
+                    </div>
                   </div>
                 </div>
 
@@ -524,7 +581,9 @@ const PuzzleGamePage = () => {
                     <span className="text-xs font-bold text-white">3x</span>
                   </div>
                   <div>
-                    <div className="text-white text-sm font-semibold">Triple Tile (3x)</div>
+                    <div className="text-white text-sm font-semibold">
+                      Triple Tile (3x)
+                    </div>
                     <div className="text-slate-400 text-xs">Single tile ×3</div>
                   </div>
                 </div>
@@ -535,7 +594,9 @@ const PuzzleGamePage = () => {
                     <span className="text-xs font-bold text-white">2x</span>
                   </div>
                   <div>
-                    <div className="text-white text-sm font-semibold">Double Tile (2x)</div>
+                    <div className="text-white text-sm font-semibold">
+                      Double Tile (2x)
+                    </div>
                     <div className="text-slate-400 text-xs">Single tile ×2</div>
                   </div>
                 </div>
@@ -543,7 +604,8 @@ const PuzzleGamePage = () => {
                 {/* Tip */}
                 <div className="mt-4 p-3 bg-indigo-500/20 rounded-lg border border-indigo-400/30">
                   <p className="text-indigo-300 text-xs">
-                    💡 <strong>Tip:</strong> Place tiles on colored cells for bonus points!
+                    💡 <strong>Tip:</strong> Place tiles on colored cells for
+                    bonus points!
                   </p>
                 </div>
               </div>
@@ -556,4 +618,3 @@ const PuzzleGamePage = () => {
 };
 
 export default PuzzleGamePage;
-
