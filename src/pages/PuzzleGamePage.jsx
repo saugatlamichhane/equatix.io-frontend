@@ -221,8 +221,8 @@ const PuzzleGamePage = () => {
       const response = await api.post("/puzzle/validateMove", {
         puzzle_id: parseInt(puzzle.puzzle_id || puzzle.id),
         placed_tiles: placedTiles.map(tile => ({
-          row: tile.row,
-          col: tile.col,
+          row: tile.row+1,
+          col: tile.col+1,
           value: tile.value
         }))
       });
