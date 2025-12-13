@@ -145,14 +145,6 @@ const App = () => {
           }
         />
         <Route
-          path="/puzzle/:puzzleId"
-          element={
-            <ProtectedRoute>
-              <PuzzleGamePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/puzzle/admin"
           element={
             <ProtectedRoute>
@@ -160,6 +152,15 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/puzzle/:puzzleId"
+          element={
+            <ProtectedRoute>
+              <PuzzleGamePage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/spectator/:roomId"
           element={
