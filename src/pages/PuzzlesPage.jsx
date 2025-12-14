@@ -11,7 +11,7 @@ const PuzzlesPage = () => {
   const [loading, setLoading] = useState(true);
   const [userProgress, setUserProgress] = useState({});
 
-  // Check if user is admin/developer (you can customize this logic)
+  // Check if user is admin/developer (This variable is now ignored for the button display)
   const isAdmin = user?.email?.includes("admin") || user?.email?.includes("dev") || localStorage.getItem("isAdmin") === "true";
 
   useEffect(() => {
@@ -71,6 +71,7 @@ const PuzzlesPage = () => {
   };
 
   const handleCreatePuzzle = () => {
+    // Navigate to the puzzle admin/creation page
     navigate("/puzzle/admin");
   };
 
@@ -107,15 +108,14 @@ const PuzzlesPage = () => {
               Daily Puzzles
             </button>
           </div>
-          {isAdmin && (
-            <button
-              onClick={handleCreatePuzzle}
-              className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Create Puzzle
-            </button>
-          )}
+          {/* CREATE PUZZLE BUTTON - NOW SHOWN TO EVERYONE */}
+          <button
+            onClick={handleCreatePuzzle}
+            className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Create Puzzle
+          </button>
         </div>
 
         {/* Puzzles Grid */}
@@ -123,15 +123,14 @@ const PuzzlesPage = () => {
           <div className="bg-slate-800/50 rounded-xl p-12 text-center ring-1 ring-white/10">
             <Puzzle className="w-16 h-16 text-slate-500 mx-auto mb-4" />
             <p className="text-slate-300 text-lg mb-2">No puzzles available yet</p>
-            {isAdmin && (
-              <button
-                onClick={handleCreatePuzzle}
-                className="mt-4 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 mx-auto"
-              >
-                <Plus className="w-5 h-5" />
-                Create Your First Puzzle
-              </button>
-            )}
+            {/* CREATE PUZZLE BUTTON - NOW SHOWN TO EVERYONE (empty state) */}
+            <button
+              onClick={handleCreatePuzzle}
+              className="mt-4 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 mx-auto"
+            >
+              <Plus className="w-5 h-5" />
+              Create Your First Puzzle
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -190,4 +189,3 @@ const PuzzlesPage = () => {
 };
 
 export default PuzzlesPage;
-
