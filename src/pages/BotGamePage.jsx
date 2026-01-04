@@ -112,7 +112,7 @@ const BotGamePage = () => {
     if (!gameStarted) return;
     
     const roomName = `botgame_${selectedVariant}_${Date.now()}`;
-    wsRef.current = new WebSocket(`ws://localhost:5555/echo?room_name=${roomName}&isBot=1`);
+    wsRef.current = new WebSocket(`wss://equatix-backend.onrender.com/echo?room_name=${roomName}&isBot=1`);
 
     wsRef.current.onopen = () => {
       console.log("WebSocket connected");
