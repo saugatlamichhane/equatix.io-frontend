@@ -8,15 +8,23 @@ import { useNavigate } from "react-router-dom";
 import googleLogo from "../assets/google.png";
 import equatixLogo from "../assets/equatixLogo.png";
 import { Play, Trophy, Users, Brain } from "lucide-react";
+import { useAuth } from "../authContext"; // Adjust the path if necessary
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const {setIsBackendSynced} = useAuth();
 
   const handleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      const token = await result.user.getIdToken();
-      console.log(token);
+      const respdata = await api.get('/login');
+      if(respdata.status === 200) {
+        console.log(`Backend verified user`);
+        setIsBackendSynced(true);
+        navigate("/dashboard");
+      }
+      // const token = await result.user.getIdToken();
+      // console.log(token);
       // Send token to backend
       // await fetch("https://baghchal-io-backend.onrender.com/api/auth/google", {
       //   method: "POST",
@@ -30,11 +38,12 @@ const LoginPage = () => {
       // const respdata = await api.get('/login');
       // if(respdata.data.success) {
       //   console.log(`Logged in as UID: ${respdata.data.uid}`);
-      navigate("/dashboard");
+      // navigate("/dashboard");
 
       //}
     } catch (err) {
       console.error("❌ Login failed:", err);
+      auth.signOut();
     }
   };
 
