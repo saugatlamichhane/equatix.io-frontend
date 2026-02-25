@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Trophy, Zap, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../authContext";
+import { ArrowLeft, Clock, Info, Trophy } from "lucide-react";
+import GameOverModal from "../components/GameOverModal";
+import { getCellMultiplier } from "../utils/multiplierCells";
 
 const BOARD_SIZE = 15;
 const RACK_SIZE = 10;
 
 const BotGamePage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [rack, setRack] = useState(Array(RACK_SIZE).fill(null));
   const [board, setBoard] = useState(
     Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
@@ -12,37 +19,31 @@ const BotGamePage = () => {
   const [selectedTileIndices, setSelectedTileIndices] = useState([]);
   const [scores, setScores] = useState({ player: 0, bot: 0 });
   const [turn, setTurn] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState("normal"); // 'normal', 'blitz', 'marathon'
   const [gameStarted, setGameStarted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // Timer in seconds
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes standard
+
+  const [gameOver, setGameOver] = useState({
+    isOpen: false,
+    winner: null,
+    finalScores: { player: 0, bot: 0 }
+  });
 
   const wsRef = useRef(null);
   const timerRef = useRef(null);
 
-  // Get initial time based on variant
-  const getInitialTime = (variant) => {
-    switch (variant) {
-      case "blitz":
-        return 180; // 3 minutes
-      case "marathon":
-        return 600; // 10 minutes
-      default:
-        return 300; // 5 minutes (normal)
-    }
-  };
-
   const handleDragStart = (e, tile, rackIndex) => {
+    if (turn !== 1) return; 
     e.dataTransfer.setData("tile", tile);
     e.dataTransfer.setData("rackIndex", rackIndex);
   };
 
   const handleDrop = (e, row, col) => {
+    if (turn !== 1) return;
     e.preventDefault();
     const tile = e.dataTransfer.getData("tile");
     const rackIndex = e.dataTransfer.getData("rackIndex");
     if (!tile) return;
 
-    // Optimistically update board visually
     setBoard((prev) => {
       if (prev[row][col] !== null) return prev;
       const newBoard = prev.map((r) => [...r]);
@@ -56,7 +57,6 @@ const BotGamePage = () => {
       return newRack;
     });
 
-    // Send placement to backend (convert to 1-based)
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       const message = {
         type: "placement",
@@ -74,20 +74,21 @@ const BotGamePage = () => {
     }
   };
 
-  const handleSubmitMove = () => sendCommand("evaluate");
-  const handlePass = () => sendCommand("pass");
+  const handleSubmitMove = () => {
+    if (turn !== 1) return;
+    sendCommand("evaluate");
+  };
+  const handlePass = () => {
+    if (turn !== 1) return;
+    sendCommand("pass");
+  };
   const handleReset = () => {
+    if (turn !== 1) return;
     sendCommand("reset");
-    // Reset timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    setTimeLeft(getInitialTime(selectedVariant));
   };
   const handleSwap = () => {
+    if (turn !== 1) return;
     if (selectedTileIndices.length > 0) {
-      // Get actual tile values from the rack using indices
       const tilesToSwap = selectedTileIndices.map(idx => rack[idx]).filter(tile => tile !== null);
       if (tilesToSwap.length > 0) {
         sendCommand("swap", { tiles: tilesToSwap });
@@ -98,7 +99,7 @@ const BotGamePage = () => {
 
   const startGame = () => {
     setGameStarted(true);
-    setTimeLeft(getInitialTime(selectedVariant));
+    setTimeLeft(300);
   };
 
   const formatTime = (seconds) => {
@@ -107,76 +108,49 @@ const BotGamePage = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Only connect when game starts
   useEffect(() => {
     if (!gameStarted) return;
     
-    const roomName = `botgame_${selectedVariant}_${Date.now()}`;
+    const roomName = `botgame_normal_${Date.now()}`;
     wsRef.current = new WebSocket(`wss://equatix-backend.onrender.com/echo?room_name=${roomName}&isBot=1`);
-
-    wsRef.current.onopen = () => {
-      console.log("WebSocket connected");
-      console.log("Game variant:", selectedVariant);
-    };
 
     wsRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("Message from server:", data);
-
-        // Initial rack and turn
         if (data.type === "init" && Array.isArray(data.rack)) {
           setRack(data.rack);
           setTurn(data.turn);
         }
-
-        // Update rack
         if (data.type === "rack" && Array.isArray(data.rack)) {
           setRack(data.rack);
         }
-
-        // Update game state
         if (data.type === "state") {
           setScores({ player: data["Player1 Score"], bot: data["Player2 Score"] });
           setTurn(data.turn);
-
-          const newBoard = Array(BOARD_SIZE)
-            .fill(null)
-            .map(() => Array(BOARD_SIZE).fill(null));
-
-          // Place confirmed tiles
+          const newBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
           if (Array.isArray(data.tiles)) {
             data.tiles.forEach(({ row, col, value }) => {
-              const r = row - 1;
-              const c = col - 1;
-              if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && typeof value === "string") {
-                newBoard[r][c] = value;
-              }
+              newBoard[row - 1][col - 1] = value;
             });
           }
-
-          // Place current (unconfirmed) tiles
           if (Array.isArray(data["current tiles"])) {
             data["current tiles"].forEach(({ row, col, value }) => {
-              const r = row - 1;
-              const c = col - 1;
-              if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && typeof value === "string") {
-                newBoard[r][c] = value;
-              }
+              newBoard[row - 1][col - 1] = value;
             });
           }
-
           setBoard(newBoard);
         }
-
         if (data.type === "game_over") {
-          alert(
-            data.winner === 0
-              ? "Game Over! It's a tie."
-              : `Game Over! Winner: Player ${data.winner}`
-          );
-        }
+            let winner = 'draw';
+            if (data.winner === 1) winner = 'player';
+            else if (data.winner === 2) winner = 'bot';
 
+            setGameOver({
+                isOpen: true,
+                winner,
+                finalScores: { player: data.score1, bot: data.score2 }
+            });
+        }
         if (data.type === "error") {
           alert("Error: " + data.message);
         }
@@ -185,121 +159,44 @@ const BotGamePage = () => {
       }
     };
 
-    wsRef.current.onclose = () => console.log("WebSocket disconnected");
-
     return () => wsRef.current?.close();
-  }, [gameStarted, selectedVariant]);
+  }, [gameStarted]);
 
-  // Timer effect - starts when game starts
   useEffect(() => {
-    if (!gameStarted) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
-    }
-
-    // Start timer
-    if (!timerRef.current) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          const newTime = Math.max(0, prev - 1);
-          
-          // If time runs out, end the game
-          if (newTime === 0) {
-            const playerScore = scores.player;
-            const botScore = scores.bot;
-            
-            let winner = 'draw';
-            if (playerScore > botScore) winner = 'player';
-            else if (botScore > playerScore) winner = 'bot';
-            
-            alert(
-              winner === 'draw'
-                ? "Time's up! It's a tie."
-                : winner === 'player'
-                ? `Time's up! You win ${playerScore}-${botScore}!`
-                : `Time's up! Bot wins ${botScore}-${playerScore}!`
-            );
-            
-            // Stop the timer
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-              timerRef.current = null;
-            }
-          }
-          
-          return newTime;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
+    if (!gameStarted) return;
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        const newTime = Math.max(0, prev - 1);
+        if (newTime === 0) {
+          let winner = 'draw';
+          if (scores.player > scores.bot) winner = 'player';
+          else if (scores.bot > scores.player) winner = 'bot';
+          setGameOver({
+            isOpen: true,
+            winner,
+            finalScores: { player: scores.player, bot: scores.bot }
+          });
+          clearInterval(timerRef.current);
+        }
+        return newTime;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
   }, [gameStarted, scores]);
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Play vs Bot</h1>
-            <p className="text-slate-300">Challenge the AI in Equatix Math Scrabble</p>
-          </div>
-
-          <div className="bg-slate-800/50 rounded-xl p-8 ring-1 ring-white/10">
-            <h2 className="text-2xl font-bold text-white mb-6">Select Game Variant</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <button
-                onClick={() => setSelectedVariant("normal")}
-                className={`p-6 rounded-lg border-2 transition-all ${
-                  selectedVariant === "normal"
-                    ? "bg-indigo-500/20 border-indigo-400 ring-2 ring-indigo-300"
-                    : "bg-slate-700/50 border-slate-600 hover:bg-slate-700"
-                }`}
-              >
-                <Trophy className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold text-lg mb-2">Normal</h3>
-                <p className="text-slate-400 text-sm mb-1">Standard gameplay</p>
-                <p className="text-slate-500 text-xs">~15 min</p>
-              </button>
-              <button
-                onClick={() => setSelectedVariant("blitz")}
-                className={`p-6 rounded-lg border-2 transition-all ${
-                  selectedVariant === "blitz"
-                    ? "bg-yellow-500/20 border-yellow-400 ring-2 ring-yellow-300"
-                    : "bg-slate-700/50 border-slate-600 hover:bg-slate-700"
-                }`}
-              >
-                <Zap className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold text-lg mb-2">Blitz</h3>
-                <p className="text-slate-400 text-sm mb-1">Fast-paced action</p>
-                <p className="text-slate-500 text-xs">~5 min</p>
-              </button>
-              <button
-                onClick={() => setSelectedVariant("marathon")}
-                className={`p-6 rounded-lg border-2 transition-all ${
-                  selectedVariant === "marathon"
-                    ? "bg-green-500/20 border-green-400 ring-2 ring-green-300"
-                    : "bg-slate-700/50 border-slate-600 hover:bg-slate-700"
-                }`}
-              >
-                <Clock className="w-10 h-10 text-green-400 mx-auto mb-3" />
-                <h3 className="text-white font-semibold text-lg mb-2">Marathon</h3>
-                <p className="text-slate-400 text-sm mb-1">Extended gameplay</p>
-                <p className="text-slate-500 text-xs">~30 min</p>
-              </button>
-            </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900">
+        <div className="max-w-md w-full p-8 text-center">
+          <div className="bg-slate-800/50 rounded-2xl p-8 ring-1 ring-white/10 shadow-2xl">
+            <Trophy className="w-16 h-16 text-indigo-400 mx-auto mb-6" />
+            <h1 className="text-3xl font-bold text-white mb-4">Play vs Bot</h1>
+            <p className="text-slate-300 mb-8">Test your skills against the AI in a standard 5-minute match.</p>
             <button
               onClick={startGame}
-              className="bg-indigo-500 hover:bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors"
+              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all shadow-lg shadow-indigo-500/25"
             >
-              Start Game ({selectedVariant.charAt(0).toUpperCase() + selectedVariant.slice(1)})
+              Start Game
             </button>
           </div>
         </div>
@@ -307,23 +204,27 @@ const BotGamePage = () => {
     );
   }
 
+  const isMyTurn = turn === 1;
+
   return (
     <div className="min-h-screen p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="text-center flex-1">
-            <h1 className="text-4xl font-bold text-white mb-2">Play vs Bot</h1>
-            <p className="text-slate-300">
-              Variant: <span className="font-semibold text-indigo-400 capitalize">{selectedVariant}</span>
-            </p>
-          </div>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Exit to Dashboard
+          </button>
           
-          <div className="flex items-center gap-2 text-slate-300">
-            <Clock className="w-5 h-5" />
-            <span className={`font-mono text-lg ${timeLeft < 60 ? "text-red-400 font-bold" : timeLeft < 120 ? "text-yellow-400" : ""}`}>
-              {formatTime(timeLeft)}
-            </span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 text-slate-300">
+              <Clock className="w-5 h-5" />
+              <span className={`font-mono text-lg ${timeLeft < 60 ? "text-red-400 animate-pulse" : ""}`}>
+                {formatTime(timeLeft)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -331,20 +232,44 @@ const BotGamePage = () => {
           {/* Game Board */}
           <div className="lg:col-span-3">
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
-              <h2 className="text-xl font-semibold text-white mb-4">Game Board</h2>
-              <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white">Game Board</h2>
+                <div className="flex items-center gap-4">
+                  <div className="text-slate-300">{isMyTurn ? "Your Turn" : "Bot's Thinking..."}</div>
+                  <div className={`w-3 h-3 rounded-full ${isMyTurn ? "bg-green-400 animate-pulse" : "bg-indigo-400"}`} />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg shadow-inner">
                 {board.map((row, rIdx) =>
-                  row.map((cell, cIdx) => (
-                    <div
-                      key={`${rIdx}-${cIdx}`}
-                      onDrop={(e) => handleDrop(e, rIdx, cIdx)}
-                      onDragOver={allowDrop}
-                      className={`w-10 h-10 flex items-center justify-center border border-slate-500 text-lg font-bold text-white rounded 
-                      ${rIdx === Math.floor(BOARD_SIZE/2)&&cIdx === Math.floor(BOARD_SIZE/2)?"bg-gray-700" : "bg-slate-600 hover:bg-slate-500"}`}
-                    >
-                      {cell}
-                    </div>
-                  ))
+                  row.map((cell, cIdx) => {
+                    const multiplier = getCellMultiplier(rIdx, cIdx);
+                    const hasTile = cell !== null;
+                    const isCenter = rIdx === 7 && cIdx === 7;
+                    
+                    return (
+                      <div
+                        key={`${rIdx}-${cIdx}`}
+                        onDrop={(e) => handleDrop(e, rIdx, cIdx)}
+                        onDragOver={allowDrop}
+                        className={`w-10 h-10 flex flex-col items-center justify-center border-2 text-lg font-bold rounded transition-all relative ${
+                          hasTile
+                            ? "bg-slate-600 text-white border-slate-400"
+                            : isCenter
+                            ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
+                            : multiplier.type !== 'none'
+                            ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
+                            : "bg-slate-600 hover:bg-slate-500 border-slate-500"
+                        }`}
+                      >
+                        {cell || (multiplier.label && !hasTile) ? (
+                          <span className={`${hasTile ? "text-white" : "text-[10px] text-white/70"} font-bold uppercase`}>
+                            {cell || multiplier.label}
+                          </span>
+                        ) : null}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -352,48 +277,70 @@ const BotGamePage = () => {
 
           {/* Side Panel */}
           <div className="space-y-6">
-            {/* Game Status */}
-            <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10">
-              <h3 className="text-lg font-semibold text-white mb-3">Game Status</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-300">Turn</span>
-                  <span className="text-white font-semibold">{turn === 1 ? "You" : "Bot"}</span>
+            {/* Players Status */}
+            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+              <h3 className="text-lg font-semibold text-white mb-4">Players</h3>
+              
+              {/* You */}
+              <div className={`p-3 rounded-lg mb-3 ${isMyTurn ? "bg-indigo-500/20 ring-1 ring-indigo-400" : "bg-slate-700/50"}`}>
+                <div className="flex items-center gap-3">
+                  <img src={user.photoURL || "https://via.placeholder.com/40"} alt="You" className="w-10 h-10 rounded-full border-2 border-indigo-400" />
+                  <div>
+                    <div className="text-white font-semibold">{user.displayName || "You"}</div>
+                    <div className="text-slate-400 text-xs">Human Player</div>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <div className="text-white font-bold text-lg">{scores.player}</div>
+                    <div className="text-slate-400 text-xs uppercase tracking-tighter">pts</div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-300">Your Score</span>
-                  <span className="text-white font-semibold">{scores.player}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-300">Bot Score</span>
-                  <span className="text-white font-semibold">{scores.bot}</span>
+              </div>
+
+              {/* Bot */}
+              <div className={`p-3 rounded-lg ${!isMyTurn ? "bg-indigo-500/20 ring-1 ring-indigo-400" : "bg-slate-700/50"}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center border-2 border-slate-400">
+                    <span className="text-xl">🤖</span>
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold">Equatix Bot</div>
+                    <div className="text-slate-400 text-xs">AI Level 1</div>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <div className="text-white font-bold text-lg">{scores.bot}</div>
+                    <div className="text-slate-400 text-xs uppercase tracking-tighter">pts</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Rack */}
-            <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10">
-              <h3 className="text-lg font-semibold text-white mb-3">Your Tiles</h3>
+            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Your Rack</h3>
+                {selectedTileIndices.length > 0 && (
+                  <span className="text-yellow-400 text-sm font-semibold">{selectedTileIndices.length} selected</span>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {rack.map((tile, idx) => (
                   <div
                     key={idx}
-                    draggable={!!tile}
+                    draggable={isMyTurn && !!tile}
                     onDragStart={(e) => handleDragStart(e, tile, idx)}
                     onClick={() => {
-                      if (tile) {
-                        setSelectedTileIndices((prev) =>
-                          prev.includes(idx)
-                            ? prev.filter((i) => i !== idx)
-                            : [...prev, idx]
-                        );
-                      }
+                      if (!isMyTurn || !tile) return;
+                      setSelectedTileIndices((prev) =>
+                        prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+                      );
                     }}
                     className={`w-10 h-10 flex items-center justify-center border rounded text-lg font-bold shadow-md transition-all ${
-                      tile
+                      tile 
                         ? selectedTileIndices.includes(idx)
-                          ? "bg-yellow-500 text-black border-yellow-400"
-                          : "cursor-move bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
+                          ? "bg-yellow-500 text-black border-yellow-400 scale-105"
+                          : isMyTurn
+                          ? "cursor-pointer bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
+                          : "bg-slate-500 text-white border-slate-400 cursor-not-allowed opacity-60"
                         : "bg-slate-600 border-slate-500"
                     }`}
                   >
@@ -404,38 +351,76 @@ const BotGamePage = () => {
             </div>
 
             {/* Actions */}
-            <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10">
-              <h3 className="text-lg font-semibold text-white mb-3">Actions</h3>
-              <div className="space-y-2">
-                <button
+            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+              <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
+              <div className="space-y-3">
+                <button 
                   onClick={handleSubmitMove}
-                  className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded-lg"
+                  disabled={!isMyTurn}
+                  className={`w-full py-2 px-4 rounded-lg font-bold transition-all ${
+                    isMyTurn ? "bg-indigo-500 hover:bg-indigo-600 text-white" : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                  }`}
                 >
                   Submit Move
                 </button>
-                <button
+                <button 
                   onClick={handleSwap}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-2 px-4 rounded-lg"
+                  disabled={!isMyTurn || selectedTileIndices.length === 0}
+                  className={`w-full py-2 px-4 rounded-lg font-bold transition-all ${
+                    selectedTileIndices.length === 0 ? "bg-slate-600 text-slate-400" : "bg-yellow-500 hover:bg-yellow-600 text-black"
+                  }`}
                 >
-                  Swap Tiles
+                  Swap Selected
                 </button>
-                <button
-                  onClick={handlePass}
-                  className="w-full bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg"
-                >
-                  Pass Turn
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg"
-                >
-                  Reset Game
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={handlePass} disabled={!isMyTurn} className="bg-slate-600 hover:bg-slate-700 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                    Pass Turn
+                  </button>
+                  <button onClick={handleReset} disabled={!isMyTurn} className="bg-red-600/80 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                    Reset Tiles
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Multiplier Legend */}
+            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Info className="w-5 h-5 text-indigo-400" />
+                Multipliers
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-red-600/50 border border-red-400 rounded flex items-center justify-center text-[8px] text-white">3E</div>
+                  <span className="text-[10px] text-slate-300">Triple Eq</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-purple-600/50 border border-purple-400 rounded flex items-center justify-center text-[8px] text-white">2E</div>
+                  <span className="text-[10px] text-slate-300">Double Eq</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-600/50 border border-blue-400 rounded flex items-center justify-center text-[8px] text-white">3T</div>
+                  <span className="text-[10px] text-slate-300">Triple Tile</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-600/50 border border-green-400 rounded flex items-center justify-center text-[8px] text-white">2T</div>
+                  <span className="text-[10px] text-slate-300">Double Tile</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <GameOverModal
+        isOpen={gameOver.isOpen}
+        winner={gameOver.winner}
+        playerScore={gameOver.finalScores.player}
+        opponentScore={gameOver.finalScores.bot}
+        opponentName="Equatix Bot"
+        onPlayAgain={() => window.location.reload()}
+        onGoHome={() => navigate('/dashboard')}
+      />
     </div>
   );
 };
