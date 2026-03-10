@@ -40,6 +40,8 @@ const PuzzleGamePage = () => {
   const [draggedTile, setDraggedTile] = useState(null);
   const [draggedFromRack, setDraggedFromRack] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
+  const [selectedTile, setSelectedTile] = useState(null);
+  const [selectedTileIndex, setSelectedTileIndex] = useState(null);
 
   useEffect(() => {
     loadPuzzle();
@@ -156,6 +158,44 @@ const PuzzleGamePage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTileClick = (tile, index) => {
+    if (isCompleted || validating) return;
+    if (selectedTileIndex === index) {
+      setSelectedTile(null);
+      setSelectedTileIndex(null);
+    } else {
+      setSelectedTile(tile);
+      setSelectedTileIndex(index);
+    }
+  };
+
+  const handleBoardClick = (row, col) => {
+    if (isCompleted || validating || !selectedTile) return;
+    
+    // Check if cell is already occupied (including initial board tiles)
+    if (board[row][col] !== null) return;
+
+    // Update board
+    setBoard((prev) => {
+      const newBoard = prev.map((r) => [...r]);
+      newBoard[row][col] = selectedTile;
+      return newBoard;
+    });
+
+    // Remove tile from rack
+    setRack((prev) => {
+      const newRack = [...prev];
+      newRack[selectedTileIndex] = null;
+      return newRack;
+    });
+
+    // Track placed tile for validation
+    setPlacedTiles((prev) => [...prev, { row, col, value: selectedTile }]);
+    
+    setSelectedTile(null);
+    setSelectedTileIndex(null);
   };
 
   const handleDragStart = (e, tile, rackIndex) => {
@@ -308,40 +348,41 @@ const PuzzleGamePage = () => {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen p-4 lg:p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 lg:mb-6 gap-4">
           <button
             onClick={() => navigate("/puzzles")}
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors text-sm lg:text-base"
           >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Puzzles
+            <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5" />
+            <span className="hidden sm:inline">Back to Puzzles</span>
+            <span className="sm:hidden">Back</span>
           </button>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-xl lg:text-2xl font-bold text-white">
             {puzzle.name || "Puzzle"}
           </h1>
-          <div className="flex items-center gap-4 text-slate-300">
+          <div className="flex items-center gap-3 lg:gap-4 text-slate-300 text-sm lg:text-base">
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
+              <Clock className="w-4 h-4 lg:w-5 lg:h-5" />
               <span className="font-mono">{formatTime(timeTaken)}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
+              <Target className="w-4 h-4 lg:w-5 lg:h-5" />
               <span>{moves} moves</span>
             </div>
           </div>
         </div>
 
         {/* Puzzle Info */}
-        <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 mb-6">
-          <p className="text-slate-300 mb-2">
+        <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10 mb-4 lg:mb-6">
+          <p className="text-slate-300 mb-3 lg:mb-2 text-sm lg:text-base">
             {puzzle.objective || "Solve the puzzle!"}
           </p>
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 lg:gap-6 text-xs lg:text-sm">
             <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-yellow-400" />
+              <Target className="w-3 h-3 lg:w-4 lg:h-4 text-yellow-400" />
               <span className="text-slate-300">
                 Objective: {puzzle.objective || "Complete the puzzle"}
               </span>
@@ -378,14 +419,14 @@ const PuzzleGamePage = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Board */}
-          <div className="lg:col-span-3">
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">Game Board</h2>
-                <div className="flex items-center gap-4">
-                  <div className="text-slate-300">
+          <div className="flex-1">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
+                <h2 className="text-lg lg:text-xl font-semibold text-white">Game Board</h2>
+                <div className="flex items-center gap-3 lg:gap-4">
+                  <div className="text-slate-300 text-sm">
                     {isCompleted ? "Puzzle Completed" : "Your Turn"}
                   </div>
                   <div
@@ -395,7 +436,9 @@ const PuzzleGamePage = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg">
+              <div className="overflow-auto">
+                <div className="min-w-[600px] inline-block">
+                  <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg">
                 {board.map((row, rowIdx) =>
                   row.map((cell, colIdx) => {
                     const multiplier = getCellMultiplier(rowIdx, colIdx);
@@ -410,7 +453,8 @@ const PuzzleGamePage = () => {
                         key={`${rowIdx}-${colIdx}`}
                         onDrop={(e) => handleDrop(e, rowIdx, colIdx)}
                         onDragOver={allowDrop}
-                        className={`w-10 h-10 flex flex-col items-center justify-center border-2 text-lg font-bold rounded transition-all relative ${
+                        onClick={() => handleBoardClick(rowIdx, colIdx)}
+                        className={`w-8 h-8 lg:w-10 lg:h-10 flex flex-col items-center justify-center border-2 text-sm lg:text-lg font-bold rounded transition-all relative cursor-pointer ${
                           hasTile
                             ? isInitial
                               ? "bg-purple-600 text-white border-purple-400"
@@ -423,7 +467,7 @@ const PuzzleGamePage = () => {
                         }`}
                       >
                         {cell || (multiplier.label && !hasTile) ? (
-                          <span className="text-xs text-white font-bold">
+                          <span className="text-xs lg:text-sm text-white font-bold">
                             {cell || multiplier.label}
                           </span>
                         ) : null}
@@ -431,38 +475,39 @@ const PuzzleGamePage = () => {
                     );
                   }),
                 )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Player Info */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+          <div className="w-full lg:w-80 space-y-4 lg:space-y-6">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-4">Player</h3>
               <div className="p-3 rounded-lg bg-indigo-500/20 ring-1 ring-indigo-400">
                 <div className="flex items-center gap-3">
                   <img
                     src={user?.photoURL || "https://via.placeholder.com/40"}
                     alt="You"
-                    className="w-10 h-10 rounded-full"
+                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full"
                   />
                   <div className="flex-1">
-                    <div className="text-white font-semibold">
+                    <div className="text-white font-semibold text-sm lg:text-base">
                       {user?.displayName || "You"}
                     </div>
-                    <div className="text-slate-400 text-sm">Puzzle Mode</div>
+                    <div className="text-slate-400 text-xs lg:text-sm">Puzzle Mode</div>
                   </div>
                   <div className="text-right">
                     <div className="text-white font-bold text-lg">{score}</div>
-                    <div className="text-slate-400 text-sm">points</div>
+                    <div className="text-slate-400 text-xs lg:text-sm">points</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Rack */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">Your Tiles</h3>
                 {placedTiles.length > 0 && (
@@ -471,13 +516,14 @@ const PuzzleGamePage = () => {
                   </span>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex justify-center gap-1 lg:gap-2">
                 {rack.map((tile, idx) => (
                   <div
                     key={idx}
                     draggable={!!tile && !isCompleted}
                     onDragStart={(e) => handleDragStart(e, tile, idx)}
-                    className={`w-10 h-10 flex items-center justify-center border rounded text-lg font-bold shadow-md transition-all ${
+                    onClick={() => handleTileClick(tile, idx)}
+                    className={`w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center border rounded text-sm lg:text-lg font-bold shadow-md transition-all cursor-pointer ${
                       tile
                         ? isCompleted
                           ? "bg-slate-500 text-white border-slate-400 cursor-not-allowed"
@@ -492,7 +538,7 @@ const PuzzleGamePage = () => {
             </div>
 
             {/* Actions */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
               <div className="space-y-3">
                 <button
@@ -500,7 +546,7 @@ const PuzzleGamePage = () => {
                   disabled={
                     isCompleted || validating || placedTiles.length === 0
                   }
-                  className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                  className={`w-full py-2 px-4 rounded-lg font-medium transition-colors text-sm lg:text-base ${
                     isCompleted || validating || placedTiles.length === 0
                       ? "bg-slate-600 text-slate-400 cursor-not-allowed"
                       : "bg-green-500 hover:bg-green-600 text-white"
@@ -513,7 +559,7 @@ const PuzzleGamePage = () => {
                   <button
                     onClick={handleUndo}
                     disabled={isCompleted || validating}
-                    className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm lg:text-base"
                   >
                     <RotateCcw className="w-4 h-4" />
                     Undo Last Tile
@@ -530,7 +576,7 @@ const PuzzleGamePage = () => {
                 <button
                   onClick={handleReset}
                   disabled={isCompleted}
-                  className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                  className={`w-full py-2 px-4 rounded-lg font-medium transition-colors text-sm lg:text-base ${
                     isCompleted
                       ? "bg-slate-600 text-slate-400 cursor-not-allowed"
                       : "bg-red-600 hover:bg-red-700 text-white"
@@ -542,16 +588,16 @@ const PuzzleGamePage = () => {
             </div>
 
             {/* Multiplier Legend */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Info className="w-5 h-5" />
+                <Info className="w-4 h-4 lg:w-5 lg:h-5" />
                 Board Multipliers
               </h3>
 
               <div className="space-y-3">
                 {/* Triple Equation */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-red-600/50 border-2 border-red-400 rounded flex items-center justify-center">
+                  <div className="w-6 h-6 lg:w-8 lg:h-8 bg-red-600/50 border-2 border-red-400 rounded flex items-center justify-center">
                     <span className="text-xs font-bold text-white">3x</span>
                   </div>
                   <div>
@@ -566,7 +612,7 @@ const PuzzleGamePage = () => {
 
                 {/* Double Equation */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-purple-600/50 border-2 border-purple-400 rounded flex items-center justify-center">
+                  <div className="w-6 h-6 lg:w-8 lg:h-8 bg-purple-600/50 border-2 border-purple-400 rounded flex items-center justify-center">
                     <span className="text-xs font-bold text-white">2x</span>
                   </div>
                   <div>
@@ -581,7 +627,7 @@ const PuzzleGamePage = () => {
 
                 {/* Triple Tile */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-600/50 border-2 border-blue-400 rounded flex items-center justify-center">
+                  <div className="w-6 h-6 lg:w-8 lg:h-8 bg-blue-600/50 border-2 border-blue-400 rounded flex items-center justify-center">
                     <span className="text-xs font-bold text-white">3x</span>
                   </div>
                   <div>
@@ -594,7 +640,7 @@ const PuzzleGamePage = () => {
 
                 {/* Double Tile */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-600/50 border-2 border-green-400 rounded flex items-center justify-center">
+                  <div className="w-6 h-6 lg:w-8 lg:h-8 bg-green-600/50 border-2 border-green-400 rounded flex items-center justify-center">
                     <span className="text-xs font-bold text-white">2x</span>
                   </div>
                   <div>

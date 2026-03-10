@@ -22,7 +22,8 @@ const ChallengeGamePage = () => {
   const [scores, setScores] = useState({ player: 0, opponent: 0 });
   const [turn, setTurn] = useState(1);
   const [playerNumber, setPlayerNumber] = useState(null);
-  const [selectedTileIndices, setSelectedTileIndices] = useState([]);
+  const [selectedTile, setSelectedTile] = useState(null);
+  const [selectedTileIndex, setSelectedTileIndex] = useState(null);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [status, setStatus] = useState("waiting"); // Start as waiting, will update when game starts
   const [opponentConnected, setOpponentConnected] = useState(false);
@@ -35,10 +36,37 @@ const ChallengeGamePage = () => {
 
   const wsRef = useRef(null);
   const timerRef = useRef(null);
-const playerNumberRef = useRef(null); // 👈 add this line here
-useEffect(() => {
-  playerNumberRef.current = playerNumber;
-}, [playerNumber]);
+const handleTileClick = (tile, index) => {
+    if (turn !== playerNumber || !tile) return;
+    if (selectedTileIndex === index) {
+      setSelectedTile(null);
+      setSelectedTileIndex(null);
+    } else {
+      setSelectedTile(tile);
+      setSelectedTileIndex(index);
+    }
+  };
+
+  const handleBoardClick = (row, col) => {
+    if (turn !== playerNumber || !selectedTile) return;
+    
+    setBoard((prev) => {
+      if (prev[row][col] !== null) return prev;
+      const newBoard = prev.map((r) => [...r]);
+      newBoard[row][col] = selectedTile;
+      
+      // Remove from rack
+      setRack((prevRack) => {
+        const newRack = [...prevRack];
+        newRack[selectedTileIndex] = null;
+        return newRack;
+      });
+      
+      setSelectedTile(null);
+      setSelectedTileIndex(null);
+      return newBoard;
+    });
+  };
 
   
   const [opponent, setOpponent] = useState({
@@ -350,34 +378,35 @@ useEffect(() => {
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 lg:mb-6">
           <button
             onClick={() => navigate("/challenges")}
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors text-sm lg:text-base"
           >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Challenges
+            <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5" />
+            <span className="hidden sm:inline">Back to Challenges</span>
+            <span className="sm:hidden">Back</span>
           </button>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 lg:gap-6">
             <div className="flex items-center gap-2 text-slate-300">
-              <Clock className="w-5 h-5" />
-              <span className="font-mono text-lg">{formatTime(timeLeft)}</span>
+              <Clock className="w-4 h-4 lg:w-5 lg:h-5" />
+              <span className="font-mono text-base lg:text-lg">{formatTime(timeLeft)}</span>
             </div>
-            <div className="text-slate-400">
+            <div className="text-slate-400 text-sm lg:text-base">
               Challenge #{challengeId?.slice(-6)}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Game Board */}
-          <div className="lg:col-span-3">
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+          <div className="flex-1">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">Game Board</h2>
+                <h2 className="text-lg lg:text-xl font-semibold text-white">Game Board</h2>
                 <div className="flex items-center gap-4">
-                  <div className="text-slate-300">
+                  <div className="text-slate-300 text-sm lg:text-base">
                     {isMyTurn ? "Your Turn" : "Opponent's Turn"}
                   </div>
                   <div
@@ -388,7 +417,8 @@ useEffect(() => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg">
+              <div className="overflow-auto">
+                <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg shadow-inner min-w-[600px] lg:min-w-0">
                 {board.map((row, rIdx) =>
                   row.map((cell, cIdx) => {
                     const multiplier = getCellMultiplier(rIdx, cIdx);
@@ -397,67 +427,69 @@ useEffect(() => {
                       cIdx === Math.floor(BOARD_SIZE / 2);
                     
                     return (
-                    <div
-                      key={`${rIdx}-${cIdx}`}
-                      onDrop={(e) => handleDrop(e, rIdx, cIdx)}
-                      onDragOver={allowDrop}
-                        className={`w-10 h-10 flex flex-col items-center justify-center border-2 text-lg font-bold rounded transition-all relative ${
-                          hasTile
-                            ? "bg-slate-600 text-white border-slate-400"
-                            : isCenter
-                            ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
-                            : multiplier.type !== 'none'
-                            ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
-                            : "bg-slate-600 hover:bg-slate-500 border-slate-500"
-                        }`}
-                      >
-                        {cell || (multiplier.label && !hasTile) ? (
-                          <span className="text-xs text-white font-bold">{cell || multiplier.label}</span>
-                        ) : null}
-                    </div>
+                      <div
+                        key={`${rIdx}-${cIdx}`}
+                        onDrop={(e) => handleDrop(e, rIdx, cIdx)}
+                        onDragOver={allowDrop}
+                        onClick={() => handleBoardClick(rIdx, cIdx)}
+                          className={`w-8 h-8 lg:w-10 lg:h-10 flex flex-col items-center justify-center border-2 text-sm lg:text-lg font-bold rounded transition-all relative cursor-pointer ${
+                            hasTile
+                              ? "bg-slate-600 text-white border-slate-400"
+                              : isCenter
+                              ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
+                              : multiplier.type !== 'none'
+                              ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
+                              : "bg-slate-600 hover:bg-slate-500 border-slate-500"
+                          }`}
+                        >
+                          {cell || (multiplier.label && !hasTile) ? (
+                            <span className="text-xs lg:text-sm text-white font-bold">{cell || multiplier.label}</span>
+                          ) : null}
+                      </div>
                     );
                   })
                 )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Side Info */}
-          <div className="space-y-6">
+          {/* Side Panel */}
+          <div className="w-full lg:w-80 space-y-4 lg:space-y-6">
             {/* Players */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Players</h3>
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
+              <h3 className="text-base lg:text-lg font-semibold text-white mb-4">Players</h3>
               
-                {/* You */}
+              {/* You */}
               <div
-                className={`p-3 rounded-lg ${
+                className={`p-3 rounded-lg mb-3 ${
                   isMyTurn
                     ? "bg-indigo-500/20 ring-1 ring-indigo-400"
                     : "bg-slate-700/50"
                 }`}
               >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={playerInfo?.photo || "https://via.placeholder.com/40"}
-                      alt="You"
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <div className="text-white font-semibold">{playerInfo?.name || "You"}</div>
-                    <div className="text-slate-400 text-sm">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={playerInfo?.photo || "https://via.placeholder.com/40"}
+                    alt="You"
+                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full"
+                  />
+                  <div>
+                    <div className="text-white font-semibold text-sm lg:text-base">{playerInfo?.name || "You"}</div>
+                    <div className="text-slate-400 text-xs lg:text-sm">
                       Rating: {Math.round(playerInfo?.rating || 1250)}
                     </div>
-                    </div>
-                    <div className="ml-auto text-right">
+                  </div>
+                  <div className="ml-auto text-right">
                     <div className="text-white font-bold text-lg">
                       {scores.player}
                     </div>
-                      <div className="text-slate-400 text-sm">points</div>
-                    </div>
+                    <div className="text-slate-400 text-xs lg:text-sm">points</div>
                   </div>
                 </div>
+              </div>
 
-                {/* Opponent */}
+              {/* Opponent */}
               <div
                 className={`p-3 rounded-lg ${
                   !isMyTurn
@@ -465,17 +497,17 @@ useEffect(() => {
                     : "bg-slate-700/50"
                 }`}
               >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={opponent.photo}
-                      alt="Opponent"
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                    <div className="text-white font-semibold">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={opponent.photo}
+                    alt="Opponent"
+                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full"
+                  />
+                  <div>
+                    <div className="text-white font-semibold text-sm lg:text-base">
                       {opponent.name}
                     </div>
-                    <div className="text-slate-400 text-sm">
+                    <div className="text-slate-400 text-xs lg:text-sm">
                       Rating: {Math.round(opponent.rating)}
                     </div>
                   </div>
@@ -483,7 +515,7 @@ useEffect(() => {
                     <div className="text-white font-bold text-lg">
                       {scores.opponent}
                     </div>
-                    <div className="text-slate-400 text-sm">points</div>
+                    <div className="text-slate-400 text-xs lg:text-sm">points</div>
                   </div>
                 </div>
               </div>

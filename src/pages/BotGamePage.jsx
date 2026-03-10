@@ -16,7 +16,8 @@ const BotGamePage = () => {
   const [board, setBoard] = useState(
     Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
   );
-  const [selectedTileIndices, setSelectedTileIndices] = useState([]);
+  const [selectedTile, setSelectedTile] = useState(null);
+  const [selectedTileIndex, setSelectedTileIndex] = useState(null);
   const [scores, setScores] = useState({ player: 0, bot: 0 });
   const [turn, setTurn] = useState(1);
   const [gameStarted, setGameStarted] = useState(false);
@@ -30,6 +31,38 @@ const BotGamePage = () => {
 
   const wsRef = useRef(null);
   const timerRef = useRef(null);
+
+  const handleTileClick = (tile, index) => {
+    if (turn !== 1 || !tile) return;
+    if (selectedTileIndex === index) {
+      setSelectedTile(null);
+      setSelectedTileIndex(null);
+    } else {
+      setSelectedTile(tile);
+      setSelectedTileIndex(index);
+    }
+  };
+
+  const handleBoardClick = (row, col) => {
+    if (turn !== 1 || !selectedTile) return;
+    
+    setBoard((prev) => {
+      if (prev[row][col] !== null) return prev;
+      const newBoard = prev.map((r) => [...r]);
+      newBoard[row][col] = selectedTile;
+      
+      // Remove from rack
+      setRack((prevRack) => {
+        const newRack = [...prevRack];
+        newRack[selectedTileIndex] = null;
+        return newRack;
+      });
+      
+      setSelectedTile(null);
+      setSelectedTileIndex(null);
+      return newBoard;
+    });
+  };
 
   const handleDragStart = (e, tile, rackIndex) => {
     if (turn !== 1) return; 
@@ -208,88 +241,92 @@ const BotGamePage = () => {
 
   return (
     <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-7xl mx-auto p-4 lg:p-6">
+        <div className="flex items-center justify-between mb-4 lg:mb-6">
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors text-sm lg:text-base"
           >
-            <ArrowLeft className="w-5 h-5" />
-            Exit to Dashboard
+            <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5" />
+            <span className="hidden sm:inline">Exit to Dashboard</span>
+            <span className="sm:hidden">Exit</span>
           </button>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 lg:gap-6">
             <div className="flex items-center gap-2 text-slate-300">
-              <Clock className="w-5 h-5" />
-              <span className={`font-mono text-lg ${timeLeft < 60 ? "text-red-400 animate-pulse" : ""}`}>
+              <Clock className="w-4 h-4 lg:w-5 lg:h-5" />
+              <span className={`font-mono text-base lg:text-lg ${timeLeft < 60 ? "text-red-400 animate-pulse" : ""}`}>
                 {formatTime(timeLeft)}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Game Board */}
-          <div className="lg:col-span-3">
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+          <div className="flex-1">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">Game Board</h2>
+                <h2 className="text-lg lg:text-xl font-semibold text-white">Game Board</h2>
                 <div className="flex items-center gap-4">
-                  <div className="text-slate-300">{isMyTurn ? "Your Turn" : "Bot's Thinking..."}</div>
+                  <div className="text-slate-300 text-sm lg:text-base">{isMyTurn ? "Your Turn" : "Bot's Thinking..."}</div>
                   <div className={`w-3 h-3 rounded-full ${isMyTurn ? "bg-green-400 animate-pulse" : "bg-indigo-400"}`} />
                 </div>
               </div>
               
-              <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg shadow-inner">
-                {board.map((row, rIdx) =>
-                  row.map((cell, cIdx) => {
-                    const multiplier = getCellMultiplier(rIdx, cIdx);
-                    const hasTile = cell !== null;
-                    const isCenter = rIdx === 7 && cIdx === 7;
-                    
-                    return (
-                      <div
-                        key={`${rIdx}-${cIdx}`}
-                        onDrop={(e) => handleDrop(e, rIdx, cIdx)}
-                        onDragOver={allowDrop}
-                        className={`w-10 h-10 flex flex-col items-center justify-center border-2 text-lg font-bold rounded transition-all relative ${
-                          hasTile
-                            ? "bg-slate-600 text-white border-slate-400"
-                            : isCenter
-                            ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
-                            : multiplier.type !== 'none'
-                            ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
-                            : "bg-slate-600 hover:bg-slate-500 border-slate-500"
-                        }`}
-                      >
-                        {cell || (multiplier.label && !hasTile) ? (
-                          <span className={`${hasTile ? "text-white" : "text-[10px] text-white/70"} font-bold uppercase`}>
-                            {cell || multiplier.label}
-                          </span>
-                        ) : null}
-                      </div>
-                    );
-                  })
-                )}
+              <div className="overflow-auto">
+                <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg shadow-inner min-w-[600px] lg:min-w-0">
+                  {board.map((row, rIdx) =>
+                    row.map((cell, cIdx) => {
+                      const multiplier = getCellMultiplier(rIdx, cIdx);
+                      const hasTile = cell !== null;
+                      const isCenter = rIdx === 7 && cIdx === 7;
+                      
+                      return (
+                        <div
+                          key={`${rIdx}-${cIdx}`}
+                          onDrop={(e) => handleDrop(e, rIdx, cIdx)}
+                          onDragOver={allowDrop}
+                          onClick={() => handleBoardClick(rIdx, cIdx)}
+                          className={`w-8 h-8 lg:w-10 lg:h-10 flex flex-col items-center justify-center border-2 text-sm lg:text-lg font-bold rounded transition-all relative cursor-pointer ${
+                            hasTile
+                              ? "bg-slate-600 text-white border-slate-400"
+                              : isCenter
+                              ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
+                              : multiplier.type !== 'none'
+                              ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
+                              : "bg-slate-600 hover:bg-slate-500 border-slate-500"
+                          }`}
+                        >
+                          {cell || (multiplier.label && !hasTile) ? (
+                            <span className={`${hasTile ? "text-white" : "text-[8px] lg:text-[10px] text-white/70"} font-bold uppercase`}>
+                              {cell || multiplier.label}
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Side Panel */}
-          <div className="space-y-6">
+          <div className="w-full lg:w-80 space-y-4 lg:space-y-6">
             {/* Players Status */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Players</h3>
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
+              <h3 className="text-base lg:text-lg font-semibold text-white mb-4">Players</h3>
               
               {/* You */}
-              <div className={`p-3 rounded-lg mb-3 ${isMyTurn ? "bg-indigo-500/20 ring-1 ring-indigo-400" : "bg-slate-700/50"}`}>
+              <div className={`p-3 lg:p-4 rounded-lg mb-3 ${isMyTurn ? "bg-indigo-500/20 ring-1 ring-indigo-400" : "bg-slate-700/50"}`}>
                 <div className="flex items-center gap-3">
-                  <img src={user.photoURL || "https://via.placeholder.com/40"} alt="You" className="w-10 h-10 rounded-full border-2 border-indigo-400" />
-                  <div>
-                    <div className="text-white font-semibold">{user.displayName || "You"}</div>
+                  <img src={user.photoURL || "https://via.placeholder.com/40"} alt="You" className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border-2 border-indigo-400" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-semibold text-sm lg:text-base truncate">{user.displayName || "You"}</div>
                     <div className="text-slate-400 text-xs">Human Player</div>
                   </div>
-                  <div className="ml-auto text-right">
+                  <div className="text-right">
                     <div className="text-white font-bold text-lg">{scores.player}</div>
                     <div className="text-slate-400 text-xs uppercase tracking-tighter">pts</div>
                   </div>
@@ -297,16 +334,16 @@ const BotGamePage = () => {
               </div>
 
               {/* Bot */}
-              <div className={`p-3 rounded-lg ${!isMyTurn ? "bg-indigo-500/20 ring-1 ring-indigo-400" : "bg-slate-700/50"}`}>
+              <div className={`p-3 lg:p-4 rounded-lg ${!isMyTurn ? "bg-indigo-500/20 ring-1 ring-indigo-400" : "bg-slate-700/50"}`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center border-2 border-slate-400">
-                    <span className="text-xl">🤖</span>
+                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-slate-600 flex items-center justify-center border-2 border-slate-400">
+                    <span className="text-lg lg:text-xl">🤖</span>
                   </div>
-                  <div>
-                    <div className="text-white font-semibold">Equatix Bot</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-semibold text-sm lg:text-base">Equatix Bot</div>
                     <div className="text-slate-400 text-xs">AI Level 1</div>
                   </div>
-                  <div className="ml-auto text-right">
+                  <div className="text-right">
                     <div className="text-white font-bold text-lg">{scores.bot}</div>
                     <div className="text-slate-400 text-xs uppercase tracking-tighter">pts</div>
                   </div>
@@ -315,31 +352,26 @@ const BotGamePage = () => {
             </div>
 
             {/* Rack */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-white">Your Rack</h3>
-                {selectedTileIndices.length > 0 && (
-                  <span className="text-yellow-400 text-sm font-semibold">{selectedTileIndices.length} selected</span>
+                <h3 className="text-base lg:text-lg font-semibold text-white">Your Rack</h3>
+                {selectedTile && (
+                  <span className="text-yellow-400 text-sm font-semibold">Selected: {selectedTile}</span>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
                 {rack.map((tile, idx) => (
                   <div
                     key={idx}
                     draggable={isMyTurn && !!tile}
                     onDragStart={(e) => handleDragStart(e, tile, idx)}
-                    onClick={() => {
-                      if (!isMyTurn || !tile) return;
-                      setSelectedTileIndices((prev) =>
-                        prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
-                      );
-                    }}
-                    className={`w-10 h-10 flex items-center justify-center border rounded text-lg font-bold shadow-md transition-all ${
+                    onClick={() => handleTileClick(tile, idx)}
+                    className={`w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center border-2 rounded text-lg font-bold shadow-md transition-all cursor-pointer ${
                       tile 
-                        ? selectedTileIndices.includes(idx)
+                        ? selectedTileIndex === idx
                           ? "bg-yellow-500 text-black border-yellow-400 scale-105"
                           : isMyTurn
-                          ? "cursor-pointer bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
+                          ? "bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
                           : "bg-slate-500 text-white border-slate-400 cursor-not-allowed opacity-60"
                         : "bg-slate-600 border-slate-500"
                     }`}
@@ -348,16 +380,21 @@ const BotGamePage = () => {
                   </div>
                 ))}
               </div>
+              <div className="mt-4 text-center lg:text-left">
+                <p className="text-slate-400 text-sm">
+                  {isMyTurn ? "Click a tile then click on the board to place it" : "Waiting for bot's move..."}
+                </p>
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
+              <h3 className="text-base lg:text-lg font-semibold text-white mb-4">Actions</h3>
               <div className="space-y-3">
                 <button 
                   onClick={handleSubmitMove}
                   disabled={!isMyTurn}
-                  className={`w-full py-2 px-4 rounded-lg font-bold transition-all ${
+                  className={`w-full py-3 px-4 rounded-lg font-bold transition-all text-sm lg:text-base ${
                     isMyTurn ? "bg-indigo-500 hover:bg-indigo-600 text-white" : "bg-slate-600 text-slate-400 cursor-not-allowed"
                   }`}
                 >
@@ -365,18 +402,18 @@ const BotGamePage = () => {
                 </button>
                 <button 
                   onClick={handleSwap}
-                  disabled={!isMyTurn || selectedTileIndices.length === 0}
-                  className={`w-full py-2 px-4 rounded-lg font-bold transition-all ${
-                    selectedTileIndices.length === 0 ? "bg-slate-600 text-slate-400" : "bg-yellow-500 hover:bg-yellow-600 text-black"
+                  disabled={!isMyTurn || !selectedTile}
+                  className={`w-full py-3 px-4 rounded-lg font-bold transition-all text-sm lg:text-base ${
+                    selectedTile ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "bg-slate-600 text-slate-400 cursor-not-allowed"
                   }`}
                 >
-                  Swap Selected
+                  Swap Selected Tile
                 </button>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={handlePass} disabled={!isMyTurn} className="bg-slate-600 hover:bg-slate-700 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                  <button onClick={handlePass} disabled={!isMyTurn} className="bg-slate-600 hover:bg-slate-700 text-white py-2 lg:py-3 rounded-lg text-xs lg:text-sm font-semibold disabled:opacity-50">
                     Pass Turn
                   </button>
-                  <button onClick={handleReset} disabled={!isMyTurn} className="bg-red-600/80 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                  <button onClick={handleReset} disabled={!isMyTurn} className="bg-red-600/80 hover:bg-red-700 text-white py-2 lg:py-3 rounded-lg text-xs lg:text-sm font-semibold disabled:opacity-50">
                     Reset Tiles
                   </button>
                 </div>
@@ -384,43 +421,43 @@ const BotGamePage = () => {
             </div>
 
             {/* Multiplier Legend */}
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Info className="w-5 h-5 text-indigo-400" />
+            <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
+              <h3 className="text-base lg:text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Info className="w-4 h-4 lg:w-5 lg:h-5 text-indigo-400" />
                 Multipliers
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-red-600/50 border border-red-400 rounded flex items-center justify-center text-[8px] text-white">3E</div>
-                  <span className="text-[10px] text-slate-300">Triple Eq</span>
+                  <div className="w-5 h-5 lg:w-6 lg:h-6 bg-red-600/50 border border-red-400 rounded flex items-center justify-center text-[6px] lg:text-[8px] text-white">3E</div>
+                  <span className="text-[10px] lg:text-[12px] text-slate-300">Triple Eq</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-purple-600/50 border border-purple-400 rounded flex items-center justify-center text-[8px] text-white">2E</div>
-                  <span className="text-[10px] text-slate-300">Double Eq</span>
+                  <div className="w-5 h-5 lg:w-6 lg:h-6 bg-purple-600/50 border border-purple-400 rounded flex items-center justify-center text-[6px] lg:text-[8px] text-white">2E</div>
+                  <span className="text-[10px] lg:text-[12px] text-slate-300">Double Eq</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-blue-600/50 border border-blue-400 rounded flex items-center justify-center text-[8px] text-white">3T</div>
-                  <span className="text-[10px] text-slate-300">Triple Tile</span>
+                  <div className="w-5 h-5 lg:w-6 lg:h-6 bg-blue-600/50 border border-blue-400 rounded flex items-center justify-center text-[6px] lg:text-[8px] text-white">3L</div>
+                  <span className="text-[10px] lg:text-[12px] text-slate-300">Triple Letter</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-green-600/50 border border-green-400 rounded flex items-center justify-center text-[8px] text-white">2T</div>
-                  <span className="text-[10px] text-slate-300">Double Tile</span>
+                  <div className="w-5 h-5 lg:w-6 lg:h-6 bg-green-600/50 border border-green-400 rounded flex items-center justify-center text-[6px] lg:text-[8px] text-white">2L</div>
+                  <span className="text-[10px] lg:text-[12px] text-slate-300">Double Letter</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <GameOverModal
-        isOpen={gameOver.isOpen}
-        winner={gameOver.winner}
-        playerScore={gameOver.finalScores.player}
-        opponentScore={gameOver.finalScores.bot}
-        opponentName="Equatix Bot"
-        onPlayAgain={() => window.location.reload()}
-        onGoHome={() => navigate('/dashboard')}
-      />
+        <GameOverModal
+          isOpen={gameOver.isOpen}
+          winner={gameOver.winner}
+          playerScore={gameOver.finalScores.player}
+          opponentScore={gameOver.finalScores.bot}
+          opponentName="Equatix Bot"
+          onPlayAgain={() => window.location.reload()}
+          onGoHome={() => navigate('/dashboard')}
+        />
+      </div>
     </div>
   );
 };
