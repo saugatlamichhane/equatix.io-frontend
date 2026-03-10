@@ -14,18 +14,14 @@ import {
   LogOut,
   Swords,
   GraduationCap,
-  Shield,
   Bot,
   Share2,
-  ChevronRight,
   Gamepad2,
   Search,
-  Activity,
-  Sparkles,
   Puzzle,
   Menu,
   X,
-} from "lucide-react"; // ✅ Added icons for Learn & Tournaments
+} from "lucide-react";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -40,35 +36,35 @@ const DashboardPage = () => {
   });
 
   const [liveStats, setLiveStats] = React.useState({
-  players_online: 0,
-  games_today: 0,
-  your_rating: 0,
-  your_rank: 0
-});
+    players_online: 0,
+    games_today: 0,
+    your_rating: 0,
+    your_rank: 0
+  });
 
-React.useEffect(() => {
-  const fetchStats = async () => {
-    try {
-      const [quickStatsResponse, liveStatsResponse] = await Promise.all([
-        api.get("/quickstats"),
-        api.get("/livestats")
-      ]);
-      setQuickStats(quickStatsResponse.data);
-      setLiveStats(liveStatsResponse.data);
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    }
-  };
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [quickStatsResponse, liveStatsResponse] = await Promise.all([
+          api.get("/quickstats"),
+          api.get("/livestats")
+        ]);
+        setQuickStats(quickStatsResponse.data);
+        setLiveStats(liveStatsResponse.data);
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+      }
+    };
 
-  fetchStats();
-  const interval = setInterval(() => {
-    api.get("/livestats")
-      .then(response => setLiveStats(response.data))
-      .catch(error => console.error("Error refreshing live stats:", error));
-  }, 30000);
+    fetchStats();
+    const interval = setInterval(() => {
+      api.get("/livestats")
+        .then(response => setLiveStats(response.data))
+        .catch(error => console.error("Error refreshing live stats:", error));
+    }, 30000);
 
-  return () => clearInterval(interval);
-}, []);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     auth.signOut();
@@ -134,7 +130,8 @@ React.useEffect(() => {
           </div>
         </aside>
 
-        <main className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 text-white relative">
+        {/* Main Content Area */}
+        <main className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-700/20 via-transparent to-transparent" />
           <div className="relative h-full overflow-y-auto">
             {/* Mobile Header */}
@@ -148,23 +145,21 @@ React.useEffect(() => {
                 </button>
                 <div className="text-lg font-semibold text-white">Equatix.io</div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="text-sm text-slate-400">
-                  Welcome, {user?.displayName?.split(' ')[0] || 'Player'}
-                </div>
+              <div className="text-sm text-slate-400">
+                Hi, {user?.displayName?.split(' ')[0] || 'Player'}
               </div>
             </div>
 
             <div className="p-4 lg:p-6">
-              {/* Search Bar - Mobile Optimized */}
+              {/* Search Bar */}
               <div className="mb-4 lg:mb-6">
                 <div className="relative max-w-md mx-auto lg:mx-0">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input className="w-full bg-slate-800 text-slate-100 placeholder:text-slate-400 rounded-lg pl-9 pr-3 py-2 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Search players, friends, tournaments..." />
+                  <input className="w-full bg-slate-800 text-slate-100 placeholder:text-slate-400 rounded-lg pl-9 pr-3 py-2 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Search players, friends..." />
                 </div>
               </div>
 
-              {/* Hero Section - Mobile Optimized */}
+              {/* Hero Section */}
               <div className="mb-6 lg:mb-8">
                 <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-xl lg:rounded-2xl p-4 lg:p-8 ring-1 ring-white/10">
                   <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
@@ -173,31 +168,19 @@ React.useEffect(() => {
                         Welcome to <span className="text-indigo-400">Equatix.io</span>
                       </h1>
                       <p className="text-base lg:text-xl text-slate-300 mb-4 lg:mb-6">
-                        The ultimate math strategy game. Challenge friends, play against bots, and climb the leaderboards!
+                        The ultimate math strategy game. Challenge friends and climb the leaderboards!
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center lg:justify-start">
-                        <button
-                          onClick={() => navigate("/match")}
-                          className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Gamepad2 className="w-4 h-4 lg:w-5 lg:h-5" />
-                          Play Now
+                        <button onClick={() => navigate("/match")} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2">
+                          <Gamepad2 className="w-4 h-4 lg:w-5 lg:h-5" /> Play Now
                         </button>
-                        <button
-                          onClick={() => navigate("/botgame")}
-                          className="bg-slate-600 hover:bg-slate-700 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Bot className="w-4 h-4 lg:w-5 lg:h-5" />
-                          Practice vs Bot
+                        <button onClick={() => navigate("/botgame")} className="bg-slate-600 hover:bg-slate-700 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2">
+                          <Bot className="w-4 h-4 lg:w-5 lg:h-5" /> Practice vs Bot
                         </button>
                       </div>
                     </div>
                     <div className="w-full max-w-xs lg:w-80 h-48 lg:h-64 rounded-xl bg-gradient-to-br from-indigo-600/40 to-fuchsia-600/40 ring-1 ring-white/10 flex items-center justify-center p-4 lg:p-6">
-                      <img
-                        src={equatixLogo}
-                        alt="Equatix.io Logo"
-                        className="max-w-full max-h-full object-contain"
-                      />
+                      <img src={equatixLogo} alt="Equatix.io Logo" className="max-w-full max-h-full object-contain" />
                     </div>
                   </div>
                 </div>
@@ -205,105 +188,56 @@ React.useEffect(() => {
 
               {/* Main Content Grid */}
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
-                {/* Left Column - Stats & Quick Actions */}
                 <div className="xl:col-span-2 space-y-4 lg:space-y-6">
                   {/* Quick Stats */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
-                      <Trophy className="w-6 h-6 lg:w-8 lg:h-8 text-yellow-400 mx-auto mb-1 lg:mb-2" />
-                      <p className="text-lg lg:text-2xl font-bold text-white">{Math.round(quickStats.elo)}</p>
-                      <p className="text-slate-400 text-xs lg:text-sm">ELO Rating</p>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
-                      <Sword className="w-6 h-6 lg:w-8 lg:h-8 text-green-400 mx-auto mb-1 lg:mb-2" />
-                      <p className="text-lg lg:text-2xl font-bold text-white">{quickStats.gamesWon}</p>
-                      <p className="text-slate-400 text-xs lg:text-sm">Games Won</p>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
-                      <Users className="w-6 h-6 lg:w-8 lg:h-8 text-blue-400 mx-auto mb-1 lg:mb-2" />
-                      <p className="text-lg lg:text-2xl font-bold text-white">{quickStats.friends}</p>
-                      <p className="text-slate-400 text-xs lg:text-sm">Friends</p>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
-                      <Swords className="w-6 h-6 lg:w-8 lg:h-8 text-purple-400 mx-auto mb-1 lg:mb-2" />
-                      <p className="text-lg lg:text-2xl font-bold text-white">{quickStats.activeChallenges}</p>
-                      <p className="text-slate-400 text-xs lg:text-sm">Active Challenges</p>
-                    </div>
+                    <StatCard icon={<Trophy className="text-yellow-400" />} value={Math.round(quickStats.elo)} label="ELO Rating" />
+                    <StatCard icon={<Sword className="text-green-400" />} value={quickStats.gamesWon} label="Games Won" />
+                    <StatCard icon={<Users className="text-blue-400" />} value={quickStats.friends} label="Friends" />
+                    <StatCard icon={<Swords className="text-purple-400" />} value={quickStats.activeChallenges} label="Challenges" />
                   </div>
-
-                  {/* Recent Activity */}
-                  {/* <Panel>
-                    <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                      <Activity className="w-5 h-5" />
-                      Recent Activity
-                    </h2>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm">Won against MathMaster123</p>
-                          <p className="text-slate-400 text-xs">2 hours ago</p>
-                        </div>
-                        <span className="text-green-400 text-sm font-medium">+25 ELO</span>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm">Completed "Equation Basics" lesson</p>
-                          <p className="text-slate-400 text-xs">1 day ago</p>
-                        </div>
-                        <span className="text-blue-400 text-sm font-medium">+50 XP</span>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg">
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                        <div className="flex-1">
-                          <p className="text-white text-sm">New friend request from NumberNinja</p>
-                          <p className="text-slate-400 text-xs">2 days ago</p>
-                        </div>
-                        <button className="text-yellow-400 text-sm font-medium hover:text-yellow-300">View</button>
-                      </div>
-                    </div>
-                  </Panel> */}
                 </div>
 
-                {/* Right Column - Live Stats */}
                 <div className="xl:col-span-1">
-                  {/* Live Stats */}
                   <Panel>
                     <h2 className="text-lg lg:text-xl font-semibold text-white mb-3 lg:mb-4">Live Stats</h2>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-300 text-sm">Players Online</span>
-                        <span className="text-white font-semibold">{liveStats.players_online.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-300 text-sm">Games Today</span>
-                        <span className="text-white font-semibold">{liveStats.games_today.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-300 text-sm">Your Rank</span>
-                        <span className="text-white font-semibold">#{liveStats.your_rank}</span>
-                      </div>
+                      <LiveStatRow label="Players Online" value={liveStats.players_online.toLocaleString()} />
+                      <LiveStatRow label="Games Today" value={liveStats.games_today.toLocaleString()} />
+                      <LiveStatRow label="Your Rank" value={`#${liveStats.your_rank}`} />
                     </div>
                   </Panel>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };
 
+/* Sub-components for cleaner structure */
 const SidebarItem = ({ label, icon, onClick }) => (
-  <button
-    onClick={onClick}
-    className="flex items-center gap-3 w-full px-3 py-2 text-left text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-  >
+  <button onClick={onClick} className="flex items-center gap-3 w-full px-3 py-2 text-left text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
     {icon}
     <span className="text-sm font-medium">{label}</span>
   </button>
+);
+
+const StatCard = ({ icon, value, label }) => (
+  <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
+    <div className="flex justify-center mb-1 lg:mb-2">{React.cloneElement(icon, { size: 24 })}</div>
+    <p className="text-lg lg:text-2xl font-bold text-white">{value}</p>
+    <p className="text-slate-400 text-xs lg:text-sm">{label}</p>
+  </div>
+);
+
+const LiveStatRow = ({ label, value }) => (
+  <div className="flex justify-between items-center">
+    <span className="text-slate-300 text-sm">{label}</span>
+    <span className="text-white font-semibold">{value}</span>
+  </div>
 );
 
 const Panel = ({ children }) => (
