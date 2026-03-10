@@ -23,11 +23,14 @@ import {
   Activity,
   Sparkles,
   Puzzle,
+  Menu,
+  X,
 } from "lucide-react"; // ✅ Added icons for Learn & Tournaments
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const [quickStats, setQuickStats] = React.useState({
     elo: 0,
@@ -72,73 +75,128 @@ React.useEffect(() => {
     navigate("/login");
   };
 
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-2">
-      <div className="w-full max-w-7xl h-[90vh] rounded-xl overflow-hidden shadow-2xl bg-slate-900/80 ring-1 ring-white/10">
-        <div className="flex h-full">
-          <aside className="hidden sm:flex sm:w-60 flex-col gap-2 p-3 bg-slate-900 text-slate-200 border-r border-white/10">
-            <div className="px-2 py-3 text-lg font-semibold text-white">Equatix.io</div>
-            <SidebarItem label="Play Now" icon={<Gamepad2 size={18} />} onClick={() => navigate("/match")} />
-            <SidebarItem label="Challenges" icon={<Swords size={18} />} onClick={() => navigate("/challenges")} />
-            <SidebarItem label="Play with Bot" icon={<Bot size={18} />} onClick={() => navigate("/botgame")} />
-            <SidebarItem label="Puzzles" icon={<Puzzle size={18} />} onClick={() => navigate("/puzzles")} />
-            <SidebarItem label="Leaderboard" icon={<Trophy size={18} />} onClick={() => navigate("/leaderboard")} />
-            {/* <SidebarItem label="Tournaments" icon={<Shield size={18} />} onClick={() => navigate("/tournaments")} />
-            <SidebarItem label="Seasonal Events" icon={<Sparkles size={18} />} onClick={() => navigate("/events/seasonal")} /> */}
-            <SidebarItem label="Learn" icon={<GraduationCap size={18} />} onClick={() => navigate("/learn")} />
-            <SidebarItem label="Friends" icon={<Users size={18} />} onClick={() => navigate("/friends")} />
-            <SidebarItem label="Find Players" icon={<UserPlus size={18} />} onClick={() => navigate("/findPlayers")} />
-            <SidebarItem label="Socials" icon={<Share2 size={18} />} onClick={() => navigate("/socials")} />
-
-            <div className="mt-auto grid gap-2">
-              <SidebarItem label="My Profile" icon={<User size={18} />} onClick={() => user && navigate(`/profile/${user.uid}`)} />
-              <SidebarItem label="Feedback" icon={<MessageCircle size={18} />} onClick={() => navigate("/feedback")} />
-              <SidebarItem label="Logout" icon={<LogOut size={18} />} onClick={handleLogout} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={closeMobileMenu} />
+          <div className="absolute left-0 top-0 h-full w-64 bg-slate-900 text-slate-200 shadow-xl">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="text-lg font-semibold text-white">Equatix.io</div>
+              <button onClick={closeMobileMenu} className="text-slate-400 hover:text-white">
+                <X size={20} />
+              </button>
             </div>
-          </aside>
+            <div className="p-4 space-y-2">
+              <SidebarItem label="Play Now" icon={<Gamepad2 size={18} />} onClick={() => { navigate("/match"); closeMobileMenu(); }} />
+              <SidebarItem label="Challenges" icon={<Swords size={18} />} onClick={() => { navigate("/challenges"); closeMobileMenu(); }} />
+              <SidebarItem label="Play with Bot" icon={<Bot size={18} />} onClick={() => { navigate("/botgame"); closeMobileMenu(); }} />
+              <SidebarItem label="Puzzles" icon={<Puzzle size={18} />} onClick={() => { navigate("/puzzles"); closeMobileMenu(); }} />
+              <SidebarItem label="Leaderboard" icon={<Trophy size={18} />} onClick={() => { navigate("/leaderboard"); closeMobileMenu(); }} />
+              <SidebarItem label="Learn" icon={<GraduationCap size={18} />} onClick={() => { navigate("/learn"); closeMobileMenu(); }} />
+              <SidebarItem label="Friends" icon={<Users size={18} />} onClick={() => { navigate("/friends"); closeMobileMenu(); }} />
+              <SidebarItem label="Find Players" icon={<UserPlus size={18} />} onClick={() => { navigate("/findPlayers"); closeMobileMenu(); }} />
+              <SidebarItem label="Socials" icon={<Share2 size={18} />} onClick={() => { navigate("/socials"); closeMobileMenu(); }} />
 
-          <main className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 text-white relative">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-700/20 via-transparent to-transparent" />
-            <div className="relative h-full p-6 overflow-y-auto">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1 relative max-w-md">
+              <div className="border-t border-white/10 pt-4 mt-4 space-y-2">
+                <SidebarItem label="My Profile" icon={<User size={18} />} onClick={() => { user && navigate(`/profile/${user.uid}`); closeMobileMenu(); }} />
+                <SidebarItem label="Feedback" icon={<MessageCircle size={18} />} onClick={() => { navigate("/feedback"); closeMobileMenu(); }} />
+                <SidebarItem label="Logout" icon={<LogOut size={18} />} onClick={() => { handleLogout(); closeMobileMenu(); }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen flex">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:flex lg:w-60 flex-col gap-2 p-3 bg-slate-900 text-slate-200 border-r border-white/10">
+          <div className="px-2 py-3 text-lg font-semibold text-white">Equatix.io</div>
+          <SidebarItem label="Play Now" icon={<Gamepad2 size={18} />} onClick={() => navigate("/match")} />
+          <SidebarItem label="Challenges" icon={<Swords size={18} />} onClick={() => navigate("/challenges")} />
+          <SidebarItem label="Play with Bot" icon={<Bot size={18} />} onClick={() => navigate("/botgame")} />
+          <SidebarItem label="Puzzles" icon={<Puzzle size={18} />} onClick={() => navigate("/puzzles")} />
+          <SidebarItem label="Leaderboard" icon={<Trophy size={18} />} onClick={() => navigate("/leaderboard")} />
+          <SidebarItem label="Learn" icon={<GraduationCap size={18} />} onClick={() => navigate("/learn")} />
+          <SidebarItem label="Friends" icon={<Users size={18} />} onClick={() => navigate("/friends")} />
+          <SidebarItem label="Find Players" icon={<UserPlus size={18} />} onClick={() => navigate("/findPlayers")} />
+          <SidebarItem label="Socials" icon={<Share2 size={18} />} onClick={() => navigate("/socials")} />
+
+          <div className="mt-auto grid gap-2">
+            <SidebarItem label="My Profile" icon={<User size={18} />} onClick={() => user && navigate(`/profile/${user.uid}`)} />
+            <SidebarItem label="Feedback" icon={<MessageCircle size={18} />} onClick={() => navigate("/feedback")} />
+            <SidebarItem label="Logout" icon={<LogOut size={18} />} onClick={handleLogout} />
+          </div>
+        </aside>
+
+        <main className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 text-white relative">
+<main className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 text-white relative">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-700/20 via-transparent to-transparent" />
+          <div className="relative h-full overflow-y-auto">
+            {/* Mobile Header */}
+            <div className="lg:hidden flex items-center justify-between p-4 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="text-slate-300 hover:text-white p-2"
+                >
+                  <Menu size={20} />
+                </button>
+                <div className="text-lg font-semibold text-white">Equatix.io</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-slate-400">
+                  Welcome, {user?.displayName?.split(' ')[0] || 'Player'}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 lg:p-6">
+              {/* Search Bar - Mobile Optimized */}
+              <div className="mb-4 lg:mb-6">
+                <div className="relative max-w-md mx-auto lg:mx-0">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input className="w-full bg-slate-800 text-slate-100 placeholder:text-slate-400 rounded-lg pl-9 pr-3 py-2 ring-1 ring-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Search players, friends, tournaments..." />
                 </div>
               </div>
 
-              {/* Hero Section */}
-              <div className="mb-8">
-                <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-2xl p-8 ring-1 ring-white/10">
-                  <div className="flex flex-col lg:flex-row items-center gap-8">
+              {/* Hero Section - Mobile Optimized */}
+              <div className="mb-6 lg:mb-8">
+                <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-xl lg:rounded-2xl p-4 lg:p-8 ring-1 ring-white/10">
+                  <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
                     <div className="flex-1 text-center lg:text-left">
-                      <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+                      <h1 className="text-2xl lg:text-4xl xl:text-5xl font-bold text-white mb-3 lg:mb-4">
                         Welcome to <span className="text-indigo-400">Equatix.io</span>
                       </h1>
-                      <p className="text-xl text-slate-300 mb-6">
+                      <p className="text-base lg:text-xl text-slate-300 mb-4 lg:mb-6">
                         The ultimate math strategy game. Challenge friends, play against bots, and climb the leaderboards!
                       </p>
-                      <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-                        <button 
+                      <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center lg:justify-start">
+                        <button
                           onClick={() => navigate("/match")}
-                          className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                          className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
                         >
-                          <Gamepad2 className="w-5 h-5" />
+                          <Gamepad2 className="w-4 h-4 lg:w-5 lg:h-5" />
                           Play Now
                         </button>
-                        <button 
+                        <button
                           onClick={() => navigate("/botgame")}
-                          className="bg-slate-600 hover:bg-slate-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                          className="bg-slate-600 hover:bg-slate-700 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
                         >
-                          <Bot className="w-5 h-5" />
+                          <Bot className="w-4 h-4 lg:w-5 lg:h-5" />
                           Practice vs Bot
                         </button>
                       </div>
                     </div>
-                    <div className="w-full lg:w-80 h-64 rounded-xl bg-gradient-to-br from-indigo-600/40 to-fuchsia-600/40 ring-1 ring-white/10 flex items-center justify-center p-6">
-                      <img 
-                        src={equatixLogo} 
-                        alt="Equatix.io Logo" 
+                    <div className="w-full max-w-xs lg:w-80 h-48 lg:h-64 rounded-xl bg-gradient-to-br from-indigo-600/40 to-fuchsia-600/40 ring-1 ring-white/10 flex items-center justify-center p-4 lg:p-6">
+                      <img
+                        src={equatixLogo}
+                        alt="Equatix.io Logo"
                         className="max-w-full max-h-full object-contain"
                       />
                     </div>
@@ -147,30 +205,30 @@ React.useEffect(() => {
               </div>
 
               {/* Main Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
                 {/* Left Column - Stats & Quick Actions */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="xl:col-span-2 space-y-4 lg:space-y-6">
                   {/* Quick Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
-                      <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">{Math.round(quickStats.elo)}</p>
-                      <p className="text-slate-400 text-sm">ELO Rating</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
+                      <Trophy className="w-6 h-6 lg:w-8 lg:h-8 text-yellow-400 mx-auto mb-1 lg:mb-2" />
+                      <p className="text-lg lg:text-2xl font-bold text-white">{Math.round(quickStats.elo)}</p>
+                      <p className="text-slate-400 text-xs lg:text-sm">ELO Rating</p>
                     </div>
-                    <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
-                      <Sword className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">{quickStats.gamesWon}</p>
-                      <p className="text-slate-400 text-sm">Games Won</p>
+                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
+                      <Sword className="w-6 h-6 lg:w-8 lg:h-8 text-green-400 mx-auto mb-1 lg:mb-2" />
+                      <p className="text-lg lg:text-2xl font-bold text-white">{quickStats.gamesWon}</p>
+                      <p className="text-slate-400 text-xs lg:text-sm">Games Won</p>
                     </div>
-                    <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
-                      <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">{quickStats.friends}</p>
-                      <p className="text-slate-400 text-sm">Friends</p>
+                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
+                      <Users className="w-6 h-6 lg:w-8 lg:h-8 text-blue-400 mx-auto mb-1 lg:mb-2" />
+                      <p className="text-lg lg:text-2xl font-bold text-white">{quickStats.friends}</p>
+                      <p className="text-slate-400 text-xs lg:text-sm">Friends</p>
                     </div>
-                    <div className="bg-slate-800/50 rounded-xl p-4 ring-1 ring-white/10 text-center">
-                      <Swords className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-white">{quickStats.activeChallenges}</p>
-                      <p className="text-slate-400 text-sm">Active Challenges</p>
+                    <div className="bg-slate-800/50 rounded-lg lg:rounded-xl p-3 lg:p-4 ring-1 ring-white/10 text-center">
+                      <Swords className="w-6 h-6 lg:w-8 lg:h-8 text-purple-400 mx-auto mb-1 lg:mb-2" />
+                      <p className="text-lg lg:text-2xl font-bold text-white">{quickStats.activeChallenges}</p>
+                      <p className="text-slate-400 text-xs lg:text-sm">Active Challenges</p>
                     </div>
                   </div>
 
@@ -209,67 +267,11 @@ React.useEffect(() => {
                   </Panel> */}
                 </div>
 
-                {/* Right Column - Quick Actions & Info */}
-                <div className="space-y-6">
-                  {/* Quick Actions */}
-                  {/* <Panel>
-                    <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-                    <div className="space-y-3">
-                      <button 
-                        onClick={() => navigate("/challenges")}
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-                      >
-                        <Swords className="w-5 h-5" />
-                        View Challenges
-                      </button>
-                      <button 
-                        onClick={() => navigate("/puzzles")}
-                        className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-                      >
-                        <Puzzle className="w-5 h-5" />
-                        Puzzles
-                      </button>
-                      <button 
-                        onClick={() => navigate("/leaderboard")}
-                        className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-                      >
-                        <Trophy className="w-5 h-5" />
-                        Leaderboard
-                      </button>
-                      <button 
-                        onClick={() => navigate("/learn")}
-                        className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-                      >
-                        <GraduationCap className="w-5 h-5" />
-                        Learn & Practice
-                      </button>
-                      <button 
-                        onClick={() => navigate("/tournaments")}
-                        className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center gap-3"
-                      >
-                        <Shield className="w-5 h-5" />
-                        Tournaments
-                      </button> 
-                    </div>
-                  </Panel> */}
-
-                  {/* Tips & Tricks
-                  <Panel>
-                    <h2 className="text-xl font-semibold text-white mb-4">💡 Pro Tip</h2>
-                    <p className="text-slate-300 text-sm mb-3">
-                      Focus on controlling the center of the board early in the game. This gives you access to more multiplier squares and limits your opponent's options.
-                    </p>
-                    <button 
-                      onClick={() => navigate("/learn")}
-                      className="text-indigo-400 hover:text-indigo-300 text-sm font-medium"
-                    >
-                      Learn more strategies →
-                    </button>
-                  </Panel> */}
-
+                {/* Right Column - Live Stats */}
+                <div className="xl:col-span-1">
                   {/* Live Stats */}
                   <Panel>
-                    <h2 className="text-xl font-semibold text-white mb-4">Live Stats</h2>
+                    <h2 className="text-lg lg:text-xl font-semibold text-white mb-3 lg:mb-4">Live Stats</h2>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-slate-300 text-sm">Players Online</span>
@@ -288,7 +290,7 @@ React.useEffect(() => {
                 </div>
               </div>
             </div>
-          </main>
+          </div>
         </div>
       </div>
     </div>

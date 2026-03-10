@@ -35,6 +35,7 @@ const PuzzleGamePage = () => {
   const [timeTaken, setTimeTaken] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [validating, setValidating] = useState(false);
   const [draggedTile, setDraggedTile] = useState(null);
   const [draggedFromRack, setDraggedFromRack] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
