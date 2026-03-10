@@ -135,7 +135,6 @@ React.useEffect(() => {
         </aside>
 
         <main className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 text-white relative">
-<main className="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 text-white relative">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-700/20 via-transparent to-transparent" />
           <div className="relative h-full overflow-y-auto">
             {/* Mobile Header */}
@@ -292,7 +291,7 @@ React.useEffect(() => {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
