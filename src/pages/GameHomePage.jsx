@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../authContext";
-import { Play, Users, Clock, Trophy, Zap } from "lucide-react";
+import { Play, Users, Trophy } from "lucide-react";
 import api from "../utils/api";
 
 export default function GameHomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTime, setSearchTime] = useState(0);
-  const [selectedVariant, setSelectedVariant] = useState("normal");
   const [liveStats, setLiveStats] = useState({
     players_online: 0,
     games_today: 0,
@@ -58,7 +57,7 @@ export default function GameHomePage() {
         JSON.stringify({
           userId: user.uid,
           elo: user.elo ?? 1000,
-          variant: selectedVariant
+          variant: "normal"
         })
       );
     };
@@ -127,65 +126,13 @@ export default function GameHomePage() {
                     Average wait time is 30 seconds.
                   </p>
 
-                  {/* VARIANT SELECTION */}
-                  <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">Select Game Variant</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                      {/* NORMAL */}
-                      <button
-                        onClick={() => setSelectedVariant("normal")}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          selectedVariant === "normal"
-                            ? "bg-indigo-500/20 border-indigo-400 ring-2 ring-indigo-300"
-                            : "bg-slate-700/50 border-slate-600 hover:bg-slate-700"
-                        }`}
-                      >
-                        <Trophy className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
-                        <h3 className="text-white font-semibold mb-1">Normal</h3>
-                        <p className="text-slate-400 text-sm">Standard gameplay</p>
-                        <p className="text-slate-500 text-xs mt-1">~15 min</p>
-                      </button>
-
-                      {/* BLITZ */}
-                      <button
-                        onClick={() => setSelectedVariant("blitz")}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          selectedVariant === "blitz"
-                            ? "bg-yellow-500/20 border-yellow-400 ring-2 ring-yellow-300"
-                            : "bg-slate-700/50 border-slate-600 hover:bg-slate-700"
-                        }`}
-                      >
-                        <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                        <h3 className="text-white font-semibold mb-1">Blitz</h3>
-                        <p className="text-slate-400 text-sm">Fast-paced action</p>
-                        <p className="text-slate-500 text-xs mt-1">~5 min</p>
-                      </button>
-
-                      {/* MARATHON */}
-                      <button
-                        onClick={() => setSelectedVariant("marathon")}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          selectedVariant === "marathon"
-                            ? "bg-green-500/20 border-green-400 ring-2 ring-green-300"
-                            : "bg-slate-700/50 border-slate-600 hover:bg-slate-700"
-                        }`}
-                      >
-                        <Clock className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                        <h3 className="text-white font-semibold mb-1">Marathon</h3>
-                        <p className="text-slate-400 text-sm">Extended gameplay</p>
-                        <p className="text-slate-500 text-xs mt-1">~30 min</p>
-                      </button>
-                    </div>
-                  </div>
-
                   {/* FIND MATCH BUTTON */}
                   <button
                     onClick={startMatchmaking}
                     className="bg-indigo-500 hover:bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors flex items-center gap-3 mx-auto"
                   >
                     <Play className="w-6 h-6" />
-                    Find Match ({selectedVariant.charAt(0).toUpperCase() + selectedVariant.slice(1)})
+                    Find Match
                   </button>
                 </>
               ) : (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../authContext";
-import { ArrowLeft, Play, Pause, SkipForward, SkipBack, Clock, Trophy, Users } from "lucide-react";
+import { ArrowLeft, Play, Pause, SkipForward, SkipBack, Clock, Users } from "lucide-react";
 
 const GameReviewPage = () => {
   const { gameId } = useParams();
@@ -51,7 +51,6 @@ const GameReviewPage = () => {
         finalScore: { player: 150, opponent: 120 },
         duration: 450, // seconds
         date: "2025-11-14T10:30:00Z",
-        variant: "normal",
         moves: [
           {
             turn: 1,
@@ -196,10 +195,6 @@ const GameReviewPage = () => {
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {formatTime(gameData.duration)}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Trophy className="w-4 h-4" />
-                  {gameData.variant}
                 </div>
               </div>
             </div>

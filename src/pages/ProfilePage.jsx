@@ -87,8 +87,7 @@ const ProfilePage = () => {
             result: "win", 
             duration: "7:32", 
             date: "2 hours ago",
-            score: { player: 150, opponent: 120 },
-            variant: "normal"
+            score: { player: 150, opponent: 120 }
           },
           { 
             id: 2, 
@@ -98,8 +97,7 @@ const ProfilePage = () => {
             result: "loss", 
             duration: "12:15", 
             date: "1 day ago",
-            score: { player: 95, opponent: 180 },
-            variant: "blitz"
+            score: { player: 95, opponent: 180 }
           },
           { 
             id: 3, 
@@ -109,8 +107,7 @@ const ProfilePage = () => {
             result: "win", 
             duration: "9:43", 
             date: "2 days ago",
-            score: { player: 200, opponent: 145 },
-            variant: "normal"
+            score: { player: 200, opponent: 145 }
           },
           { 
             id: 4, 
@@ -120,8 +117,7 @@ const ProfilePage = () => {
             result: "win", 
             duration: "5:21", 
             date: "3 days ago",
-            score: { player: 175, opponent: 100 },
-            variant: "marathon"
+            score: { player: 175, opponent: 100 }
           },
         ]);
       } catch (error) {
@@ -572,7 +568,7 @@ const ProfilePage = () => {
                         }`} />
                         <div className="flex-1">
                           <p className="text-white font-medium">vs {game.opponent}</p>
-                          <p className="text-slate-400 text-sm">{game.date} • {game.variant}</p>
+                          <p className="text-slate-400 text-sm">{game.date}</p>
                           {game.score && (
                             <p className="text-slate-400 text-xs mt-1">
                               Score: {game.score.player} - {game.score.opponent}
