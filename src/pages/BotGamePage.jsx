@@ -28,6 +28,10 @@ const BotGamePage = () => {
     finalScores: { player: 0, bot: 0 }
   });
 
+  const [draggedTile, setDraggedTile] = useState(null);
+  const [draggedFromRack, setDraggedFromRack] = useState(null);
+  const [touchStartPos, setTouchStartPos] = useState(null);
+
   const wsRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -67,6 +71,70 @@ const BotGamePage = () => {
   };
 
   const allowDrop = (e) => e.preventDefault();
+
+  // Touch event handlers for mobile drag and drop
+  const handleTouchStart = (e, tile, rackIndex) => {
+    if (turn !== 1 || !tile) return;
+    e.preventDefault();
+    setDraggedTile(tile);
+    setDraggedFromRack(rackIndex);
+    setTouchStartPos({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    });
+  };
+
+  const handleTouchMove = (e) => {
+    if (!draggedTile) return;
+    e.preventDefault();
+    // Visual feedback could be added here
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!draggedTile || !touchStartPos) return;
+    
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    
+    // Find the drop target by checking which cell the touch ended on
+    const elementsAtPoint = document.elementsFromPoint(touchEndX, touchEndY);
+    const boardCell = elementsAtPoint.find(el => el.hasAttribute('data-board-cell'));
+    
+    if (boardCell) {
+      const row = parseInt(boardCell.getAttribute('data-row'));
+      const col = parseInt(boardCell.getAttribute('data-col'));
+      handleDropOnCell(row, col);
+    }
+    
+    setDraggedTile(null);
+    setDraggedFromRack(null);
+    setTouchStartPos(null);
+  };
+
+  const handleDropOnCell = (row, col) => {
+    if (turn !== 1 || !draggedTile) return;
+
+    setBoard((prev) => {
+      if (prev[row][col] !== null) return prev;
+      const newBoard = prev.map((r) => [...r]);
+      newBoard[row][col] = draggedTile;
+      return newBoard;
+    });
+
+    setRack((prev) => {
+      const newRack = [...prev];
+      newRack[draggedFromRack] = null;
+      return newRack;
+    });
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const message = {
+        type: "placement",
+        payload: { row: row + 1, col: col + 1, value: draggedTile },
+      };
+      wsRef.current.send(JSON.stringify(message));
+    }
+  };
 
   const sendCommand = (type, extra = {}) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -228,55 +296,61 @@ const BotGamePage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Game Board */}
-          <div className="lg:col-span-3">
-            <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
+          <div className="xl:col-span-3 order-1 xl:order-1">
+            <div className="bg-slate-800/50 rounded-xl p-4 sm:p-6 ring-1 ring-white/10">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white">Game Board</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-white">Game Board</h2>
                 <div className="flex items-center gap-4">
-                  <div className="text-slate-300">{isMyTurn ? "Your Turn" : "Bot's Thinking..."}</div>
+                  <div className="text-slate-300 text-sm sm:text-base">{isMyTurn ? "Your Turn" : "Bot's Thinking..."}</div>
                   <div className={`w-3 h-3 rounded-full ${isMyTurn ? "bg-green-400 animate-pulse" : "bg-indigo-400"}`} />
                 </div>
               </div>
               
-              <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg shadow-inner">
-                {board.map((row, rIdx) =>
-                  row.map((cell, cIdx) => {
-                    const multiplier = getCellMultiplier(rIdx, cIdx);
-                    const hasTile = cell !== null;
-                    const isCenter = rIdx === 7 && cIdx === 7;
-                    
-                    return (
-                      <div
-                        key={`${rIdx}-${cIdx}`}
-                        onDrop={(e) => handleDrop(e, rIdx, cIdx)}
-                        onDragOver={allowDrop}
-                        className={`w-10 h-10 flex flex-col items-center justify-center border-2 text-lg font-bold rounded transition-all relative ${
-                          hasTile
-                            ? "bg-slate-600 text-white border-slate-400"
-                            : isCenter
-                            ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
-                            : multiplier.type !== 'none'
-                            ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
-                            : "bg-slate-600 hover:bg-slate-500 border-slate-500"
-                        }`}
-                      >
-                        {cell || (multiplier.label && !hasTile) ? (
-                          <span className={`${hasTile ? "text-white" : "text-[10px] text-white/70"} font-bold uppercase`}>
-                            {cell || multiplier.label}
-                          </span>
-                        ) : null}
-                      </div>
-                    );
-                  })
-                )}
+              <div className="overflow-auto">
+                <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg shadow-inner min-w-max">
+                  {board.map((row, rIdx) =>
+                    row.map((cell, cIdx) => {
+                      const multiplier = getCellMultiplier(rIdx, cIdx);
+                      const hasTile = cell !== null;
+                      const isCenter = rIdx === 7 && cIdx === 7;
+                      
+                      return (
+                        <div
+                          key={`${rIdx}-${cIdx}`}
+                          data-board-cell
+                          data-row={rIdx}
+                          data-col={cIdx}
+                          onDrop={(e) => handleDrop(e, rIdx, cIdx)}
+                          onDragOver={allowDrop}
+                          onTouchEnd={handleTouchEnd}
+                          className={`w-8 h-8 sm:w-10 sm:h-10 flex flex-col items-center justify-center border-2 text-sm sm:text-lg font-bold rounded transition-all relative ${
+                            hasTile
+                              ? "bg-slate-600 text-white border-slate-400"
+                              : isCenter
+                              ? "bg-gray-700 hover:bg-gray-600 border-gray-500"
+                              : multiplier.type !== 'none'
+                              ? `${multiplier.bg} hover:opacity-70 border-slate-400 ${multiplier.border} border-2`
+                              : "bg-slate-600 hover:bg-slate-500 border-slate-500"
+                          }`}
+                        >
+                          {cell || (multiplier.label && !hasTile) ? (
+                            <span className={`${hasTile ? "text-white" : "text-xs sm:text-[10px] text-white/70"} font-bold uppercase`}>
+                              {cell || multiplier.label}
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Side Panel */}
-          <div className="space-y-6">
+          <div className="space-y-6 order-2 xl:order-2 xl:col-span-1">
             {/* Players Status */}
             <div className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10">
               <h3 className="text-lg font-semibold text-white mb-4">Players</h3>
@@ -322,24 +396,26 @@ const BotGamePage = () => {
                   <span className="text-yellow-400 text-sm font-semibold">{selectedTileIndices.length} selected</span>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 {rack.map((tile, idx) => (
                   <div
                     key={idx}
                     draggable={isMyTurn && !!tile}
                     onDragStart={(e) => handleDragStart(e, tile, idx)}
+                    onTouchStart={(e) => handleTouchStart(e, tile, idx)}
+                    onTouchMove={handleTouchMove}
                     onClick={() => {
                       if (!isMyTurn || !tile) return;
                       setSelectedTileIndices((prev) =>
                         prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
                       );
                     }}
-                    className={`w-10 h-10 flex items-center justify-center border rounded text-lg font-bold shadow-md transition-all ${
+                    className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center border rounded text-sm sm:text-lg font-bold shadow-md transition-all ${
                       tile 
                         ? selectedTileIndices.includes(idx)
                           ? "bg-yellow-500 text-black border-yellow-400 scale-105"
                           : isMyTurn
-                          ? "cursor-pointer bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
+                          ? "cursor-pointer bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600 active:bg-indigo-700"
                           : "bg-slate-500 text-white border-slate-400 cursor-not-allowed opacity-60"
                         : "bg-slate-600 border-slate-500"
                     }`}
