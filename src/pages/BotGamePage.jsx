@@ -28,6 +28,9 @@ const BotGamePage = () => {
     winner: null,
     finalScores: { player: 0, bot: 0 }
   });
+  const [connectionError, setConnectionError] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const [selectedTileIndices, setSelectedTileIndices] = useState([]);
 
   const wsRef = useRef(null);
   const timerRef = useRef(null);
@@ -103,7 +106,17 @@ const BotGamePage = () => {
 
   const sendCommand = (type, extra = {}) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type, ...extra }));
+      try {
+        const message = { type, ...extra };
+        console.log("Sending command:", message);
+        wsRef.current.send(JSON.stringify(message));
+      } catch (err) {
+        console.error("Error sending message:", err);
+        setConnectionError("Failed to send command to server.");
+      }
+    } else {
+      console.warn("Cannot send command - WebSocket not connected. State:", wsRef.current?.readyState);
+      setConnectionError("Not connected to game server. Waiting for connection...");
     }
   };
 
@@ -145,7 +158,23 @@ const BotGamePage = () => {
     if (!gameStarted) return;
     
     const roomName = `botgame_normal_${Date.now()}`;
-    wsRef.current = new WebSocket(`wss://equatix-backend.onrender.com/echo?room_name=${roomName}&isBot=1`);
+    const wsUrl = `wss://equatix-backend.onrender.com/echo?room_name=${roomName}&uid=${user.uid}&isBot=1`;
+    console.log("Attempting WebSocket connection to:", wsUrl);
+    
+    wsRef.current = new WebSocket(wsUrl);
+
+    wsRef.current.onopen = () => {
+      console.log("WebSocket connected");
+      setConnectionStatus("connected");
+      setConnectionError(null);
+    };
+
+    wsRef.current.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      const errorMsg = "Failed to connect to game server. Please check your internet connection.";
+      setConnectionError(errorMsg);
+      setConnectionStatus("error");
+    };
 
     wsRef.current.onmessage = (event) => {
       try {
@@ -192,8 +221,21 @@ const BotGamePage = () => {
       }
     };
 
-    return () => wsRef.current?.close();
-  }, [gameStarted]);
+    wsRef.current.onclose = (event) => {
+      console.log("WebSocket closed:", { code: event.code, reason: event.reason, wasClean: event.wasClean });
+      setConnectionStatus("disconnected");
+      if (!event.wasClean && gameStarted) {
+        setConnectionError("Connection lost. Please refresh to reconnect.");
+      }
+    };
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      clearInterval(timerRef.current);
+    };
+  }, [gameStarted, user.uid]);
 
   useEffect(() => {
     if (!gameStarted) return;

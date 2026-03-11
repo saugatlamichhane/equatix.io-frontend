@@ -24,6 +24,7 @@ const ChallengeGamePage = () => {
   const [playerNumber, setPlayerNumber] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
   const [selectedTileIndex, setSelectedTileIndex] = useState(null);
+  const [selectedTileIndices, setSelectedTileIndices] = useState([]);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [status, setStatus] = useState("waiting"); // Start as waiting, will update when game starts
   const [opponentConnected, setOpponentConnected] = useState(false);
@@ -33,9 +34,25 @@ const ChallengeGamePage = () => {
     winner: null,
     finalScores: { player: 0, opponent: 0 }
   });
+  const [connectionError, setConnectionError] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
+  
+  const [opponent, setOpponent] = useState({
+    name: "Opponent",
+    photo: "https://via.placeholder.com/40",
+    rating: 1250,
+  });
+
+  const [playerInfo, setPlayerInfo] = useState({
+    name: user.displayName || "You",
+    photo: user.photoURL || "https://via.placeholder.com/40",
+    rating: 1250,
+  });
 
   const wsRef = useRef(null);
   const timerRef = useRef(null);
+  const playerNumberRef = useRef(null);
+
 const handleTileClick = (tile, index) => {
     if (turn !== playerNumber || !tile) return;
     if (selectedTileIndex === index) {
@@ -69,18 +86,6 @@ const handleTileClick = (tile, index) => {
   };
 
   
-  const [opponent, setOpponent] = useState({
-    name: "Opponent",
-    photo: "https://via.placeholder.com/40",
-    rating: 1250,
-  });
-
-  const [playerInfo, setPlayerInfo] = useState({
-    name: user.displayName || "You",
-    photo: user.photoURL || "https://via.placeholder.com/40",
-    rating: 1250,
-  });
-
   // Helper functions
   const allowDrop = (e) => e.preventDefault();
 
@@ -123,7 +128,17 @@ const handleTileClick = (tile, index) => {
 
   const sendCommand = (type, extra = {}) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type, ...extra }));
+      try {
+        const message = { type, ...extra };
+        console.log("Sending command:", message);
+        wsRef.current.send(JSON.stringify(message));
+      } catch (err) {
+        console.error("Error sending message:", err);
+        setConnectionError("Failed to send command to server.");
+      }
+    } else {
+      console.warn("Cannot send command - WebSocket not connected. State:", wsRef.current?.readyState);
+      setConnectionError("Not connected to game server. Please refresh the page.");
     }
   };
 
@@ -155,11 +170,16 @@ const handleTileClick = (tile, index) => {
   };
 
   useEffect(() => {
-    wsRef.current = new WebSocket(
-      `wss://equatix-backend.onrender.com/echo?room_name=challenge${challengeId}&uid=${user.uid}`
-    );
+    const wsUrl = `wss://equatix-backend.onrender.com/echo?room_name=challenge${challengeId}&uid=${user.uid}`;
+    console.log("Attempting WebSocket connection to:", wsUrl);
+    
+    wsRef.current = new WebSocket(wsUrl);
 
-    wsRef.current.onopen = () => console.log("WebSocket connected");
+    wsRef.current.onopen = () => {
+      console.log("WebSocket connected");
+      setConnectionStatus("connected");
+      setConnectionError(null);
+    };
 
     wsRef.current.onmessage = (event) => {
       try {
@@ -273,13 +293,30 @@ const handleTileClick = (tile, index) => {
       }
     };
 
-    wsRef.current.onclose = () => console.log("WebSocket disconnected");
+    wsRef.current.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      const errorMsg = "Failed to connect to game server. Please check your internet connection.";
+      setConnectionError(errorMsg);
+      setConnectionStatus("error");
+      setStatus("error");
+    };
+
+    wsRef.current.onclose = (event) => {
+      console.log("WebSocket closed:", { code: event.code, reason: event.reason, wasClean: event.wasClean });
+      setConnectionStatus("disconnected");
+      if (!event.wasClean && status === "in_progress") {
+        setConnectionError("Connection lost during gameplay. Your game has been disconnected.");
+        setStatus("disconnected");
+      }
+    };
 
     return () => {
-      wsRef.current?.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
       clearInterval(timerRef.current);
     };
-  }, [challengeId]);
+  }, [challengeId, user.uid]);
 
   // Separate effect for timer that runs when status changes to "in_progress"
   useEffect(() => {
@@ -367,6 +404,34 @@ const handleTileClick = (tile, index) => {
             <div className="flex items-center justify-center gap-2 text-slate-400">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-sm">Establishing connection</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (connectionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900">
+        <div className="max-w-md w-full p-8 text-center">
+          <div className="bg-red-900/50 rounded-2xl p-8 ring-1 ring-red-400/30 shadow-2xl">
+            <div className="text-red-400 text-5xl mb-4">⚠️</div>
+            <h1 className="text-2xl font-bold text-white mb-4">Connection Error</h1>
+            <p className="text-slate-300 mb-6">{connectionError}</p>
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-8 py-3 rounded-xl font-semibold transition-all"
+              >
+                Refresh Page
+              </button>
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="w-full bg-slate-600 hover:bg-slate-700 text-white px-8 py-3 rounded-xl font-semibold transition-all"
+              >
+                Return to Dashboard
+              </button>
             </div>
           </div>
         </div>
