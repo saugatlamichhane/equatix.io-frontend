@@ -320,7 +320,7 @@ const BotGamePage = () => {
                 <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg shadow-inner min-w-[600px] lg:min-w-0">
                   {board.map((row, rIdx) =>
                     row.map((cell, cIdx) => {
-                      const multiplier = getCellMultiplier(rIdx, cIdx);
+                      const multiplier = getCellMultiplier(rIdx + 1, cIdx + 1);
                       const hasTile = cell !== null;
                       const isCenter = rIdx === 7 && cIdx === 7;
                       

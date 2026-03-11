@@ -289,7 +289,7 @@ const PuzzleAdminPage = () => {
               <div className="grid grid-cols-15 gap-1 bg-slate-900 p-2 rounded-lg">
                 {board.map((row, rowIdx) =>
                   row.map((cell, colIdx) => {
-                    const multiplier = getCellMultiplier(rowIdx, colIdx);
+                    const multiplier = getCellMultiplier(rowIdx + 1, colIdx + 1);
                     return (
                       <div
                         key={`${rowIdx}-${colIdx}`}

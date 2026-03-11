@@ -441,7 +441,7 @@ const PuzzleGamePage = () => {
                   <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg">
                 {board.map((row, rowIdx) =>
                   row.map((cell, colIdx) => {
-                    const multiplier = getCellMultiplier(rowIdx, colIdx);
+                    const multiplier = getCellMultiplier(rowIdx + 1, colIdx + 1);
                     const hasTile = cell !== null;
                     const isInitial = initialBoard?.[rowIdx]?.[colIdx] !== null;
                     const isCenter =

@@ -42,16 +42,13 @@ const DOUBLE_TILE = [
   { row: 15, col: 4 }, { row: 15, col: 12 }
 ];
 
-// Convert to 0-based coordinates for frontend array indexing
-const convertToZeroBased = (cells) => 
-  cells.map(({ row, col }) => ({ row: row - 1, col: col - 1 }));
+// Use 1-based coordinates directly (matching backend)
+export const TRIPLE_EQ_CELLS = TRIPLE_EQUATION;
+export const DOUBLE_EQ_CELLS = DOUBLE_EQUATION;
+export const TRIPLE_TILE_CELLS = TRIPLE_TILE;
+export const DOUBLE_TILE_CELLS = DOUBLE_TILE;
 
-export const TRIPLE_EQ_CELLS = convertToZeroBased(TRIPLE_EQUATION);
-export const DOUBLE_EQ_CELLS = convertToZeroBased(DOUBLE_EQUATION);
-export const TRIPLE_TILE_CELLS = convertToZeroBased(TRIPLE_TILE);
-export const DOUBLE_TILE_CELLS = convertToZeroBased(DOUBLE_TILE);
-
-// Get the multiplier type for a cell
+// Get the multiplier type for a cell (expects 1-based coordinates)
 export const getCellMultiplier = (row, col) => {
   const isTripleEq = TRIPLE_EQ_CELLS.some(c => c.row === row && c.col === col);
   const isDoubleEq = DOUBLE_EQ_CELLS.some(c => c.row === row && c.col === col);

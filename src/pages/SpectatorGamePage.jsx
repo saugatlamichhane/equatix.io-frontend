@@ -195,7 +195,7 @@ const SpectatorGamePage = () => {
                 <div className="grid grid-cols-15 gap-0.5 bg-slate-700 p-2 rounded-lg">
                   {board.map((row, rIdx) =>
                     row.map((cell, cIdx) => {
-                      const multiplier = getCellMultiplier(rIdx, cIdx);
+                      const multiplier = getCellMultiplier(rIdx + 1, cIdx + 1);
                       const hasTile = cell !== null;
                       const isCenter = rIdx === Math.floor(BOARD_SIZE / 2) &&
                         cIdx === Math.floor(BOARD_SIZE / 2);
