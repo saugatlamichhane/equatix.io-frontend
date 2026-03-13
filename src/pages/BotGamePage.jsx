@@ -13,6 +13,7 @@ const BotGamePage = () => {
   const { user } = useAuth();
 
   const [rack, setRack] = useState(Array(RACK_SIZE).fill(null));
+  const [originalRack, setOriginalRack] = useState(Array(RACK_SIZE).fill(null));
   const [board, setBoard] = useState(
     Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null))
   );
@@ -31,18 +32,28 @@ const BotGamePage = () => {
   const [connectionError, setConnectionError] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [selectedTileIndices, setSelectedTileIndices] = useState([]);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
 
   const wsRef = useRef(null);
   const timerRef = useRef(null);
 
-  const handleTileClick = (tile, index) => {
+  const handleTileClick = (tile, index, e) => {
     if (turn !== 1 || !tile) return;
-    if (selectedTileIndex === index) {
+    
+    if (multiSelectMode) {
+      // Multi-select mode: toggle tiles in/out of selection
+      if (selectedTileIndices.includes(index)) {
+        setSelectedTileIndices(selectedTileIndices.filter(i => i !== index));
+      } else {
+        setSelectedTileIndices([...selectedTileIndices, index]);
+      }
       setSelectedTile(null);
       setSelectedTileIndex(null);
     } else {
+      // Single-select mode: replace selection
       setSelectedTile(tile);
       setSelectedTileIndex(index);
+      setSelectedTileIndices([]);
     }
   };
 
@@ -53,6 +64,7 @@ const BotGamePage = () => {
       if (prev[row][col] !== null) return prev;
       const newBoard = prev.map((r) => [...r]);
       newBoard[row][col] = selectedTile;
+      console.log(`Tile placed: ${selectedTile} at position (${row + 1}, ${col + 1})`);
       
       // Remove from rack
       setRack((prevRack) => {
@@ -80,6 +92,8 @@ const BotGamePage = () => {
     const rackIndex = e.dataTransfer.getData("rackIndex");
     if (!tile) return;
 
+    console.log(`Tile placed (drag-drop): ${tile} at position (${row + 1}, ${col + 1})`);
+
     setBoard((prev) => {
       if (prev[row][col] !== null) return prev;
       const newBoard = prev.map((r) => [...r]);
@@ -98,6 +112,7 @@ const BotGamePage = () => {
         type: "placement",
         payload: { row: row + 1, col: col + 1, value: tile },
       };
+      console.log("Sending placement message:", message);
       wsRef.current.send(JSON.stringify(message));
     }
   };
@@ -137,9 +152,15 @@ const BotGamePage = () => {
     if (selectedTileIndices.length > 0) {
       const tilesToSwap = selectedTileIndices.map(idx => rack[idx]).filter(tile => tile !== null);
       if (tilesToSwap.length > 0) {
-        sendCommand("swap", { tiles: tilesToSwap });
+        sendCommand("swap", { tiles: tilesToSwap, indices: selectedTileIndices });
         setSelectedTileIndices([]);
+        setSelectedTile(null);
+        setSelectedTileIndex(null);
       }
+    } else if (selectedTileIndex !== null && selectedTile) {
+      sendCommand("swap", { tiles: [selectedTile], indices: [selectedTileIndex] });
+      setSelectedTile(null);
+      setSelectedTileIndex(null);
     }
   };
 
@@ -181,10 +202,23 @@ const BotGamePage = () => {
         const data = JSON.parse(event.data);
         if (data.type === "init" && Array.isArray(data.rack)) {
           setRack(data.rack);
+          setOriginalRack([...data.rack]);
           setTurn(data.turn);
         }
         if (data.type === "rack" && Array.isArray(data.rack)) {
           setRack(data.rack);
+        }
+        if (data.type === "reset") {
+          // Restore rack to original state after reset
+          if (Array.isArray(data.rack)) {
+            setRack(data.rack);
+          } else {
+            setRack([...originalRack]);
+          }
+          // Clear board temporarily placed tiles (reset current turn placements)
+          setSelectedTile(null);
+          setSelectedTileIndex(null);
+          setSelectedTileIndices([]);
         }
         if (data.type === "state") {
           setScores({ player: data["Player1 Score"], bot: data["Player2 Score"] });
@@ -397,9 +431,26 @@ const BotGamePage = () => {
             <div className="bg-slate-800/50 rounded-xl p-4 lg:p-6 ring-1 ring-white/10">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base lg:text-lg font-semibold text-white">Your Rack</h3>
-                {selectedTile && (
-                  <span className="text-yellow-400 text-sm font-semibold">Selected: {selectedTile}</span>
+                {(selectedTile || selectedTileIndices.length > 0) && (
+                  <span className="text-yellow-400 text-sm font-semibold">
+                    {selectedTile ? `Selected: ${selectedTile}` : `Selected: ${selectedTileIndices.length} tile(s)`}
+                  </span>
                 )}
+              </div>
+              <div className="mb-3">
+                <button
+                  onClick={() => setMultiSelectMode(!multiSelectMode)}
+                  disabled={!isMyTurn}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    isMyTurn
+                      ? multiSelectMode
+                        ? "bg-yellow-500 hover:bg-yellow-600 text-black"
+                        : "bg-slate-600 hover:bg-slate-700 text-white"
+                      : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                  }`}
+                >
+                  {multiSelectMode ? "Multi-Select ON" : "Multi-Select OFF"}
+                </button>
               </div>
               <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
                 {rack.map((tile, idx) => (
@@ -407,10 +458,10 @@ const BotGamePage = () => {
                     key={idx}
                     draggable={isMyTurn && !!tile}
                     onDragStart={(e) => handleDragStart(e, tile, idx)}
-                    onClick={() => handleTileClick(tile, idx)}
+                    onClick={(e) => handleTileClick(tile, idx, e)}
                     className={`w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center border-2 rounded text-lg font-bold shadow-md transition-all cursor-pointer ${
                       tile 
-                        ? selectedTileIndex === idx
+                        ? selectedTileIndex === idx || selectedTileIndices.includes(idx)
                           ? "bg-yellow-500 text-black border-yellow-400 scale-105"
                           : isMyTurn
                           ? "bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600"
@@ -424,7 +475,9 @@ const BotGamePage = () => {
               </div>
               <div className="mt-4 text-center lg:text-left">
                 <p className="text-slate-400 text-sm">
-                  {isMyTurn ? "Click a tile then click on the board to place it" : "Waiting for bot's move..."}
+                  {isMyTurn ? 
+                    (multiSelectMode ? "Click tiles to add/remove from selection" : "Click a tile to select, then place on board or swap")
+                    : "Waiting for bot's move..."}
                 </p>
               </div>
             </div>
@@ -444,12 +497,12 @@ const BotGamePage = () => {
                 </button>
                 <button 
                   onClick={handleSwap}
-                  disabled={!isMyTurn || !selectedTile}
+                  disabled={!isMyTurn || (!selectedTile && selectedTileIndices.length === 0)}
                   className={`w-full py-3 px-4 rounded-lg font-bold transition-all text-sm lg:text-base ${
-                    selectedTile ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "bg-slate-600 text-slate-400 cursor-not-allowed"
+                    (isMyTurn && (selectedTile || selectedTileIndices.length > 0)) ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "bg-slate-600 text-slate-400 cursor-not-allowed"
                   }`}
                 >
-                  Swap Selected Tile
+                  Swap Selected ({selectedTileIndices.length > 0 ? selectedTileIndices.length : selectedTile ? 1 : 0})
                 </button>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={handlePass} disabled={!isMyTurn} className="bg-slate-600 hover:bg-slate-700 text-white py-2 lg:py-3 rounded-lg text-xs lg:text-sm font-semibold disabled:opacity-50">
