@@ -42,6 +42,43 @@ const PuzzleGamePage = () => {
   const [touchStartPos, setTouchStartPos] = useState(null);
   const [selectedTile, setSelectedTile] = useState(null);
   const [selectedTileIndex, setSelectedTileIndex] = useState(null);
+  const [totalAttempts, setTotalAttempts] = useState(0);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  // Calculate score based on multipliers and tiles placed
+  const calculateScore = () => {
+    let newScore = 0;
+    placedTiles.forEach((tile) => {
+      const multiplier = getCellMultiplier(tile.row + 1, tile.col + 1);
+      let tileValue = 1; // Base value
+
+      // Add letter values (numbers and operators could have different values)
+      if (!isNaN(tile.value)) {
+        tileValue = parseInt(tile.value);
+      }
+
+      // Apply multipliers
+      if (multiplier.type === "tile-double") {
+        newScore += tileValue * 2;
+      } else if (multiplier.type === "tile-triple") {
+        newScore += tileValue * 3;
+      } else {
+        newScore += tileValue;
+      }
+    });
+
+    // Apply equation multipliers retroactively
+    placedTiles.forEach((tile) => {
+      const multiplier = getCellMultiplier(tile.row + 1, tile.col + 1);
+      if (multiplier.type === "equation-double") {
+        newScore *= 2;
+      } else if (multiplier.type === "equation-triple") {
+        newScore *= 3;
+      }
+    });
+
+    return Math.max(newScore, 0);
+  };
 
   useEffect(() => {
     loadPuzzle();
@@ -52,6 +89,13 @@ const PuzzleGamePage = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, [puzzleId]);
+
+  // Update score whenever placed tiles change
+  useEffect(() => {
+    if (!isCompleted) {
+      setScore(calculateScore());
+    }
+  }, [placedTiles]);
 
   const loadPuzzle = async () => {
     try {
@@ -279,13 +323,17 @@ const PuzzleGamePage = () => {
 
     // Check if there are any placed tiles to validate
     if (placedTiles.length === 0) {
-      alert("Please place at least one tile before submitting!");
+      setErrorMessage("Please place at least one tile before submitting!");
       return;
     }
 
     setValidating(true);
+    setErrorMessage(null);
 
     try {
+      // Increment attempt counter
+      setTotalAttempts((prev) => prev + 1);
+
       // Call the validateMove endpoint
       const response = await api.post("/puzzle/validateMove", {
         puzzle_id: parseInt(puzzle.puzzle_id || puzzle.id),
@@ -302,6 +350,17 @@ const PuzzleGamePage = () => {
         setIsCompleted(true);
         setMoves((prev) => prev + 1);
 
+        // Submit completion to backend
+        try {
+          await api.post(`/puzzle/${puzzle.puzzle_id}/submit`, {
+            completion_time: timeTaken,
+            final_score: score,
+            attempts: totalAttempts + 1,
+          });
+        } catch (submitErr) {
+          console.warn("Failed to save completion to backend:", submitErr);
+        }
+
         // Clear placed tiles for next move (if needed)
         setPlacedTiles([]);
 
@@ -309,11 +368,12 @@ const PuzzleGamePage = () => {
       }
     } catch (error) {
       // Validation failed - show error message
-      const errorMessage =
+      const errorMsg =
+        error.response?.data?.message ||
         error.response?.data ||
         error.message ||
         "Invalid move. Please try again.";
-      alert(`❌ ${errorMessage}`);
+      setErrorMessage(errorMsg);
 
       // Optionally, you could reset the invalid tiles here
       // For now, we'll let the user fix it manually
@@ -321,9 +381,6 @@ const PuzzleGamePage = () => {
       setValidating(false);
     }
   };
-
-  // Note: Completion is automatically saved by the backend when validateMove succeeds
-  // The backend updates puzzle_progress table when a valid move is submitted
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -414,8 +471,14 @@ const PuzzleGamePage = () => {
               🎉 Puzzle Completed!
             </p>
             <p className="text-slate-300 text-sm mt-1">
-              Score: {score} | Moves: {moves} | Time: {formatTime(timeTaken)}
+              Score: {score} | Moves: {moves} | Time: {formatTime(timeTaken)} | Attempts: {totalAttempts}
             </p>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 mb-6">
+            <p className="text-red-400 font-medium text-sm">❌ {errorMessage}</p>
           </div>
         )}
 
@@ -502,6 +565,10 @@ const PuzzleGamePage = () => {
                     <div className="text-white font-bold text-lg">{score}</div>
                     <div className="text-slate-400 text-xs lg:text-sm">points</div>
                   </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-indigo-400/30 flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Attempts:</span>
+                  <span className="text-indigo-400 font-semibold">{totalAttempts}</span>
                 </div>
               </div>
             </div>

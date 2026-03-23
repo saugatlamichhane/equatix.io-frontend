@@ -8,45 +8,30 @@ const DailyPuzzlesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [todayPuzzle, setTodayPuzzle] = useState(null);
-  const [streak, setStreak] = useState({ current: 7, longest: 12 });
+  const [streak, setStreak] = useState({ current: 0, longest: 0 });
   const [calendarData, setCalendarData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchDailyPuzzle();
-    fetchStreak();
-    generateCalendar();
+    fetchDailyData();
   }, []);
 
-  const fetchDailyPuzzle = async () => {
-    // TODO: Replace with real API call when backend endpoint is ready
-    // GET /puzzles/daily
+  const fetchDailyData = async () => {
     try {
       setLoading(true);
-      
-      // For now, try to get puzzles and filter for daily, or use mock data
+      setError(null);
+
+      // Fetch today's daily puzzle
       try {
-        const res = await api.get("/puzzles");
-        // If backend supports daily puzzles, filter them
-        // For now, use first puzzle as today's puzzle
-        if (res.data && res.data.length > 0) {
-          const puzzle = res.data[0];
-          setTodayPuzzle({
-            ...puzzle,
-            date: new Date().toISOString().split('T')[0],
-            completed: puzzle.solved || false
-          });
-        } else {
-          // Mock data if no puzzles available
-          setTodayPuzzle({
-            puzzle_id: "daily-001",
-            difficulty: "medium",
-            objective: "Create an equation that equals 15",
-            date: new Date().toISOString().split('T')[0],
-            completed: false
-          });
-        }
-      } catch (err) {
+        const dailyRes = await api.get("/puzzles/daily");
+        setTodayPuzzle({
+          ...dailyRes.data,
+          date: new Date().toISOString().split('T')[0],
+          completed: dailyRes.data.completed_today || false
+        });
+      } catch (dailyErr) {
+        console.error("Failed to fetch daily puzzle:", dailyErr);
         // Fallback to mock data
         setTodayPuzzle({
           puzzle_id: "daily-001",
@@ -55,49 +40,84 @@ const DailyPuzzlesPage = () => {
           date: new Date().toISOString().split('T')[0],
           completed: false
         });
+        setError("Could not load today's puzzle. Showing cached puzzle.");
+      }
+
+      // Fetch user streak
+      try {
+        const streakRes = await api.get("/puzzles/streak");
+        setStreak({
+          current: streakRes.data.current_streak || 0,
+          longest: streakRes.data.longest_streak || 0,
+          lastCompleted: streakRes.data.last_completed_date
+        });
+
+        // Generate calendar from history
+        if (streakRes.data.daily_history) {
+          generateCalendarFromHistory(streakRes.data.daily_history);
+        } else {
+          generateCalendar();
+        }
+      } catch (streakErr) {
+        console.error("Failed to fetch streak:", streakErr);
+        // Fallback to demo data
+        setStreak({
+          current: 0,
+          longest: 0,
+          lastCompleted: null
+        });
+        generateCalendar();
       }
     } catch (error) {
-      console.error("Failed to fetch daily puzzle:", error);
+      console.error("Failed to fetch daily data:", error);
+      setError("Failed to load daily puzzle data. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStreak = async () => {
-    // TODO: Replace with real API call when backend endpoint is ready
-    // GET /puzzles/streak
-    try {
-      // Mock streak data
-      setStreak({
-        current: 7,
-        longest: 12,
-        lastCompleted: "2025-11-13"
-      });
-    } catch (error) {
-      console.error("Failed to fetch streak:", error);
-    }
-  };
-
-  const generateCalendar = () => {
-    // Generate last 30 days calendar
+  const generateCalendarFromHistory = (history) => {
+    // history should be array of dates like ['2025-11-10', '2025-11-11', ...]
     const days = [];
     const today = new Date();
-    
+
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
-      // Mock: mark some days as completed
-      const completed = Math.random() > 0.3 && i < streak.current;
-      
+
+      const completed = Array.isArray(history) ? history.includes(dateStr) : false;
+
       days.push({
         date: dateStr,
         completed,
         isToday: i === 0
       });
     }
-    
+
+    setCalendarData(days);
+  };
+
+  const generateCalendar = () => {
+    // Generate last 30 days calendar with mock data
+    const days = [];
+    const today = new Date();
+
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      // Mock: mark some days as completed
+      const completed = Math.random() > 0.4 && i < streak.current;
+
+      days.push({
+        date: dateStr,
+        completed,
+        isToday: i === 0
+      });
+    }
+
     setCalendarData(days);
   };
 
@@ -149,7 +169,9 @@ const DailyPuzzlesPage = () => {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-slate-400 text-sm mb-1">Keep it going!</p>
+              <p className="text-slate-400 text-sm mb-1">
+                {streak.current === 0 ? "Start a streak today!" : "Keep it going!"}
+              </p>
               {streak.current > 0 && (
                 <p className="text-orange-400 font-semibold">
                   🔥 {streak.current} days in a row
@@ -158,6 +180,12 @@ const DailyPuzzlesPage = () => {
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl p-4 mb-6">
+            <p className="text-yellow-400 text-sm">⚠️ {error}</p>
+          </div>
+        )}
 
         {/* Today's Puzzle */}
         {todayPuzzle && (
