@@ -25,10 +25,12 @@ const DailyPuzzlesPage = () => {
       // Fetch today's daily puzzle
       try {
         const dailyRes = await api.get("/puzzles/daily");
+        // Handle both nested and flat response structures
+        const puzzleData = dailyRes.data.data || dailyRes.data;
         setTodayPuzzle({
-          ...dailyRes.data,
+          ...puzzleData,
           date: new Date().toISOString().split('T')[0],
-          completed: dailyRes.data.completed_today || false
+          completed: puzzleData.completed_today || false
         });
       } catch (dailyErr) {
         console.error("Failed to fetch daily puzzle:", dailyErr);
@@ -46,15 +48,16 @@ const DailyPuzzlesPage = () => {
       // Fetch user streak
       try {
         const streakRes = await api.get("/puzzles/streak");
+        const streakData = streakRes.data.data || streakRes.data;
         setStreak({
-          current: streakRes.data.current_streak || 0,
-          longest: streakRes.data.longest_streak || 0,
-          lastCompleted: streakRes.data.last_completed_date
+          current: streakData.current_streak || 0,
+          longest: streakData.longest_streak || 0,
+          lastCompleted: streakData.last_completed_date
         });
 
         // Generate calendar from history
-        if (streakRes.data.daily_history) {
-          generateCalendarFromHistory(streakRes.data.daily_history);
+        if (streakData.daily_history) {
+          generateCalendarFromHistory(streakData.daily_history);
         } else {
           generateCalendar();
         }

@@ -104,7 +104,7 @@ const PuzzleGamePage = () => {
       // Fetch puzzle from backend using the new endpoint
       try {
         const res = await api.get(`/puzzle/${puzzleId}`);
-        const puzzleData = res.data;
+        const puzzleData = res.data.data;
 
         // Backend returns: {puzzle_id, difficulty, objective, board: [{row, col, value}], rack: ["1","2","+"]}
         setPuzzle({

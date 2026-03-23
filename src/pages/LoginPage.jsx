@@ -21,6 +21,7 @@ const LoginPage = () => {
       if(respdata.status === 200) {
         console.log(`Backend verified user`);
         setIsBackendSynced(true);
+        console.log(result.user.getIdToken());
         navigate("/dashboard");
       }
       // const token = await result.user.getIdToken();

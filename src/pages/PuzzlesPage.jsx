@@ -30,8 +30,9 @@ const PuzzlesPage = () => {
       // Fetch puzzles from backend using the new endpoint
       try {
         const res = await api.get("/puzzles");
-        // Backend returns: [{puzzle_id, difficulty, objective, solved}, ...]
-        const backendPuzzles = res.data.map(puzzle => ({
+        // Backend returns: {data: [{puzzle_id, difficulty, objective, solved}, ...], limit, offset, total}
+        const puzzlesArray = res.data.data || res.data; // Handle both response structures
+        const backendPuzzles = puzzlesArray.map(puzzle => ({
           id: puzzle.puzzle_id,
           puzzle_id: puzzle.puzzle_id,
           difficulty: puzzle.difficulty,

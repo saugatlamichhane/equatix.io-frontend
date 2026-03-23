@@ -17,23 +17,21 @@ This document outlines the API endpoints and data structures needed to support t
 - `sort` (optional): `recent`, `oldest`, `completed`, `pending`
 - `search` (optional): Search term for puzzle name/objective
 
-**Response**:
+**Response** (Current Backend Format):
 ```json
 {
   "data": [
     {
       "puzzle_id": 1,
-      "difficulty": "medium",
+      "difficulty": "easy",
       "objective": "Create an equation that equals 15",
-      "solved": false,
-      "created_at": "2025-11-10T10:00:00Z",
-      "created_by": "user_id",
-      "attempts": 0,
+      "solved": true,
+      "created_at": "2025-11-29 14:06:54.751576",
       "best_time": null
     }
   ],
-  "total": 50,
-  "limit": 10,
+  "total": 4,
+  "limit": 50,
   "offset": 0
 }
 ```
