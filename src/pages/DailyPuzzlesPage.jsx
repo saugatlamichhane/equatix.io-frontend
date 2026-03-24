@@ -29,7 +29,7 @@ const DailyPuzzlesPage = () => {
         const puzzleData = dailyRes.data.data || dailyRes.data;
         setTodayPuzzle({
           ...puzzleData,
-          date: new Date().toISOString().split('T')[0],
+          date: getUTCDateString(new Date()), // Ensure date is in YYYY-MM-DD format  
           completed: puzzleData.completed_today || false
         });
       } catch (dailyErr) {
@@ -78,28 +78,51 @@ const DailyPuzzlesPage = () => {
       setLoading(false);
     }
   };
+// 1. Helper to ensure string and date calculations are always UTC
+const getUTCDateString = (date) => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
-  const generateCalendarFromHistory = (history) => {
-    // history should be array of dates like ['2025-11-10', '2025-11-11', ...]
-    const days = [];
-    const today = new Date();
+const generateCalendarFromHistory = (history) => {
+  const days = [];
+  const now = new Date();
+  const todayStr = getUTCDateString(now);
 
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+  // Create a start date exactly 29 UTC days ago
+  const startDate = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() - 29
+  ));
 
-      const completed = Array.isArray(history) ? history.includes(dateStr) : false;
+  // Padding logic using UTC day of week
+  const firstDayOfWeek = startDate.getUTCDay();
+  for (let p = 0; p < firstDayOfWeek; p++) {
+    days.push({ padding: true });
+  }
 
-      days.push({
-        date: dateStr,
-        completed,
-        isToday: i === 0
-      });
-    }
+  for (let i = 0; i < 30; i++) {
+    // Increment by UTC days
+    const currentDate = new Date(startDate.getTime());
+    currentDate.setUTCDate(startDate.getUTCDate() + i);
+    
+    const dateStr = getUTCDateString(currentDate);
+    const completed = Array.isArray(history) ? history.includes(dateStr) : false;
 
-    setCalendarData(days);
-  };
+    days.push({
+      date: dateStr,
+      dayNum: currentDate.getUTCDate(), // This ensures the box says '24'
+      completed,
+      isToday: dateStr === todayStr,
+      padding: false
+    });
+  }
+
+  setCalendarData(days);
+};
 
   const generateCalendar = () => {
     // Generate last 30 days calendar with mock data
@@ -262,8 +285,10 @@ const DailyPuzzlesPage = () => {
             
             {/* Calendar days */}
             {calendarData.map((day, idx) => {
+              if (day.padding) {
+    return <div key={`pad-${idx}`} className="aspect-square" />; // Empty slot
+  }
               const date = new Date(day.date);
-              const dayNum = date.getDate();
               const isToday = day.isToday;
               
               return (
@@ -281,7 +306,7 @@ const DailyPuzzlesPage = () => {
                   {day.completed ? (
                     <Trophy className="w-5 h-5" />
                   ) : (
-                    dayNum
+                    day.dayNum
                   )}
                 </div>
               );
