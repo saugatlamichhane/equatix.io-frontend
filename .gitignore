@@ -29,4 +29,4 @@ dist-ssr
 .env.*.local
 
 #change summary
-change_summary.txt
+change_summary_frontend.txt
