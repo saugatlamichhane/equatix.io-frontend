@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../authContext";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, PlayCircle } from "lucide-react";
 import api from "../utils/api";
 
 const ChallengesPage = () => {
@@ -73,6 +73,11 @@ const ChallengesPage = () => {
     // 👇 navigate to the challenge game page
     navigate(`/challenge/${challengeId}`);
   };
+
+  const handleReviewGame = (gameId) => {
+    // 👇 navigate to the game review page
+    navigate(`/game/review/${gameId}`);
+  }
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -197,33 +202,45 @@ const ChallengesPage = () => {
 
         {/* Completed Challenges */}
         {completedChallenges.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4 text-white">📜 Game History</h2>
-            <div className="space-y-4">
-              {completedChallenges.map((c) => (
-                <div
-                  key={c.id}
-                  className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10 hover:bg-slate-800/70 transition-colors opacity-75"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-3 h-3 rounded-full ${
-                        c.status === 'rejected' ? 'bg-red-400' : 'bg-slate-400'
-                      }`} />
-                      <div>
-                        <p className="text-white font-semibold">
-                          {c.challenger_id === user?.uid ? `vs ${c.opponent_id}` : `vs ${c.challenger_id}`}
-                        </p>
-                        <p className="text-slate-400 text-sm capitalize">Status: {c.status}</p>
-                        <p className="text-slate-500 text-xs">{c.created_at ? new Date(c.created_at).toLocaleDateString() : ''}</p>
-                      </div>
-                    </div>
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4 text-white">📜 Game History</h2>
+        <div className="space-y-4">
+          {completedChallenges.map((c) => (
+            <div
+              key={c.id}
+              className="bg-slate-800/50 rounded-xl p-6 ring-1 ring-white/10 hover:bg-slate-800/70 transition-colors"
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className={`w-3 h-3 rounded-full ${
+                    c.status === 'rejected' ? 'bg-red-400' : 
+                    c.status === 'completed' ? 'bg-green-400' : 'bg-slate-400'
+                  }`} />
+                  <div>
+                    <p className="text-white font-semibold">
+                      {c.challenger_id === user?.uid ? `vs ${c.opponent_id}` : `vs ${c.challenger_id}`}
+                    </p>
+                    <p className="text-slate-400 text-sm capitalize">Status: {c.status}</p>
+                    <p className="text-slate-500 text-xs">{c.created_at ? new Date(c.created_at).toLocaleDateString() : ''}</p>
                   </div>
                 </div>
-              ))}
+
+                {/* Only show Review button if the game was actually played/completed */}
+                {c.status === 'completed' && (
+                  <button
+                    onClick={() => navigate(`/game/review/${c.id}`)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-all shadow-lg shadow-indigo-500/20"
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                    Review Game
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+      </div>
+    )}
       </div>
     </div>
   );
